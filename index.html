@@ -3,68 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KMY BRU | Master Cloud</title>
+    <title>KMY BRU | Master Control</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- React & Babel for Single File Execution -->
+    <!-- React & Babel -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
-    <!-- Recharts (UMD version) -->
+    <!-- Recharts Dependencies -->
     <script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
     <script src="https://unpkg.com/recharts@2.12.0/umd/Recharts.js"></script>
     
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- Professional Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
 
     <style>
+        :root {
+            --bg: #000000;
+            --card: #0c0c0c;
+            --border: #1a1a1a;
+            --accent: #ffffff;
+        }
         body {
-            background-color: #050505;
-            color: white;
-            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg);
+            color: #e5e7eb;
+            font-family: 'Inter', sans-serif;
             margin: 0;
             overflow-x: hidden;
             -webkit-font-smoothing: antialiased;
         }
+        .header-text {
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            text-transform: uppercase;
+        }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #000; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #222; border-radius: 10px; }
         
-        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        /* Fix for Recharts visibility in dark theme */
-        .recharts-cartesian-grid-horizontal line, .recharts-cartesian-grid-vertical line {
-            stroke: #1a1a1a;
+        .fade-in { animation: fadeIn 0.2s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.99); } to { opacity: 1; transform: scale(1); } }
+
+        .bru-input {
+            background: #080808;
+            border: 1px solid #222;
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+            font-weight: 500;
+            color: white;
+            outline: none;
+            width: 100%;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
         }
+        .bru-input:focus { border-color: white; background: #000; }
+        
+        table { border-collapse: separate; border-spacing: 0 4px; width: 100%; }
+        tr { background: #080808; }
+        td, th { padding: 0.85rem 1rem; text-align: left; }
+        td:first-child, th:first-child { border-radius: 0.75rem 0 0 0.75rem; }
+        td:last-child, th:last-child { border-radius: 0 0.75rem 0.75rem 0; }
+
+        .btn-action {
+            transition: all 0.2s;
+        }
+        .btn-action:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
-    <!-- Main Mount Point -->
     <div id="app"></div>
 
-    <!-- data-type="module" is critical to allow ESM imports with Babel standalone -->
     <script type="text/babel" data-type="module">
         const { useState, useEffect, useMemo } = React;
-        const { 
-            XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, AreaChart, Area 
-        } = window.Recharts;
+        const { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, AreaChart, Area } = window.Recharts;
 
-        // --- FIREBASE INTEGRATION (Using ESM Imports) ---
+        // --- FIREBASE CORE ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { 
-            getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, signInAnonymously 
-        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { 
-            getFirestore, collection, doc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, Timestamp, increment, query, orderBy 
-        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, Timestamp, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyB8EE6iavqDKXJdmgLpOD6kMVYsskHu56w",
@@ -75,177 +97,42 @@
             appId: "1:176073299379:web:6c5eeee23008d8f09b27c6"
         };
 
-        const firebaseApp = initializeApp(firebaseConfig);
-        const auth = getAuth(firebaseApp);
-        const db = getFirestore(firebaseApp);
-        const storage = getStorage(firebaseApp);
-        const appId = "kmy-bru-final-deploy";
+        const fApp = initializeApp(firebaseConfig);
+        const auth = getAuth(fApp);
+        const db = getFirestore(fApp);
+        const activeAppId = "kmy-bru-master-v7"; // ID Sistem Konsisten
 
-        const formatRM = (val) => new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(val || 0);
+        const formatRM = (v) => new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(v || 0);
 
-        // --- HELPER COMPONENTS ---
+        // --- UI HELPERS ---
 
-        const Icon = ({ name, size = 20, className = "" }) => {
-            useEffect(() => { 
-                if (window.lucide) window.lucide.createIcons(); 
-            }, [name]);
+        const Icon = ({ name, size = 18, className = "" }) => {
+            useEffect(() => { if (window.lucide) window.lucide.createIcons(); }, [name]);
             return <i data-lucide={name} style={{ width: size, height: size }} className={className}></i>;
         };
 
         const Modal = ({ isOpen, onClose, title, children }) => {
             if (!isOpen) return null;
             return (
-                <div className="fixed inset-0 z-[100] flex justify-center items-start overflow-y-auto bg-black/95 backdrop-blur-md p-4 py-10 lg:py-20">
+                <div className="fixed inset-0 z-[100] flex justify-center items-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
                     <div className="fixed inset-0 -z-10" onClick={onClose}></div>
-                    <div className="bg-[#0c0c0c] border border-[#1a1a1a] relative w-full max-w-xl rounded-[2.5rem] shadow-2xl fade-in my-auto overflow-hidden">
-                        <div className="flex items-center justify-between p-6 lg:p-10 border-b border-[#1a1a1a] sticky top-0 bg-[#0c0c0c] z-10 text-white">
-                            <h3 className="text-xl font-black tracking-widest uppercase italic leading-none">{title}</h3>
-                            <button onClick={onClose} className="p-3 hover:bg-white/10 rounded-full transition-all text-white/40 hover:text-white">
-                                <Icon name="x" size={24} />
+                    <div className="bg-[#0c0c0c] border border-[#1a1a1a] relative w-full max-w-3xl rounded-[1.5rem] shadow-2xl flex flex-col max-h-[90vh]">
+                        <div className="flex items-center justify-between p-5 border-b border-[#1a1a1a]">
+                            <h3 className="text-md header-text text-white">{title}</h3>
+                            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-all text-zinc-500 hover:text-white">
+                                <Icon name="x" size={20} />
                             </button>
                         </div>
-                        <div className="p-6 lg:p-10 text-white">{children}</div>
+                        <div className="p-6 text-white overflow-y-auto custom-scrollbar">
+                            {children}
+                        </div>
                     </div>
                 </div>
             );
         };
 
-        // --- MAIN APPLICATION ---
+        // --- COMPONENTS ---
 
-        function App() {
-            const [user, setUser] = useState(null);
-            const [loading, setLoading] = useState(true);
-            const [view, setView] = useState('dashboard');
-            const [sidebarOpen, setSidebarOpen] = useState(false);
-            
-            const [products, setProducts] = useState([]);
-            const [ingredients, setIngredients] = useState([]);
-            const [recipes, setRecipes] = useState([]);
-            const [sales, setSales] = useState([]);
-            const [purchases, setPurchases] = useState([]);
-            const [settings, setSettings] = useState({ autoDeduct: true, watermark: true, logoUrl: null });
-
-            useEffect(() => {
-                const unsubscribe = onAuthStateChanged(auth, (u) => {
-                    setUser(u);
-                    setLoading(false);
-                });
-                return () => unsubscribe();
-            }, []);
-
-            useEffect(() => {
-                if (!user) return;
-                const base = ['artifacts', appId, 'users', user.uid];
-                const unsub = [
-                    onSnapshot(collection(db, ...base, 'products'), s => setProducts(s.docs.map(d => ({id: d.id, ...d.data()})))),
-                    onSnapshot(collection(db, ...base, 'ingredients'), s => setIngredients(s.docs.map(d => ({id: d.id, ...d.data()})))),
-                    onSnapshot(collection(db, ...base, 'recipes'), s => setRecipes(s.docs.map(d => ({id: d.id, ...d.data()})))),
-                    onSnapshot(collection(db, ...base, 'sales'), s => setSales(s.docs.map(d => ({id: d.id, ...d.data()})))),
-                    onSnapshot(collection(db, ...base, 'purchases'), s => setPurchases(s.docs.map(d => ({id: d.id, ...d.data()})))),
-                    onSnapshot(doc(db, ...base, 'settings', 'config'), s => s.exists() && setSettings(s.data()))
-                ];
-                return () => unsub.forEach(f => f());
-            }, [user]);
-
-            if (loading) return (
-                <div className="min-h-screen bg-black flex flex-col items-center justify-center text-white">
-                    <div className="w-12 h-12 border-t-2 border-white rounded-full animate-spin mb-6"></div>
-                    <p className="font-black italic tracking-[0.5em] uppercase text-[10px] opacity-30 italic">KMY BRU • MASTER CLOUD</p>
-                </div>
-            );
-
-            if (!user) return <AuthPage />;
-
-            const NavItem = ({ icon, label, id }) => (
-                <button 
-                    onClick={() => { setView(id); setSidebarOpen(false); }}
-                    className={`flex items-center space-x-4 px-6 py-4 rounded-2xl transition-all w-full text-left ${view === id ? 'bg-white text-black font-black shadow-xl scale-[1.03]' : 'text-zinc-600 hover:text-white hover:bg-zinc-900'}`}
-                >
-                    <Icon name={icon} size={18} />
-                    <span className="text-[10px] tracking-[0.3em] uppercase font-bold">{label}</span>
-                </button>
-            );
-
-            return (
-                <div className="min-h-screen w-full bg-[#050505] text-white flex flex-col lg:flex-row overflow-x-hidden selection:bg-white selection:text-black">
-                    {/* Watermark Logo */}
-                    {settings.watermark && settings.logoUrl && (
-                        <div className="fixed inset-0 pointer-events-none opacity-[0.03] flex items-center justify-center grayscale invert z-0 overflow-hidden">
-                            <img src={settings.logoUrl} className="w-[80vw] max-w-4xl transform rotate-[-15deg]" alt="" />
-                        </div>
-                    )}
-
-                    {/* Sidebar PC */}
-                    <aside className="hidden lg:flex flex-col w-72 fixed h-full border-r border-[#1a1a1a] p-8 z-[60] bg-black">
-                        <div className="mb-10 flex items-center space-x-3">
-                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center rotate-3 shadow-lg">
-                                <Icon name="coffee" className="text-black" size={24} />
-                            </div>
-                            <h1 className="text-xl font-black italic tracking-tighter uppercase leading-none">KMY BRU</h1>
-                        </div>
-                        <nav className="flex-1 space-y-2">
-                            <NavItem icon="layout-dashboard" label="Dashboard" id="dashboard" />
-                            <NavItem icon="shopping-cart" label="Order Baru" id="sales" />
-                            <NavItem icon="book-open" label="Menu & Resipi" id="products" />
-                            <NavItem icon="package" label="Inventori" id="inventory" />
-                            <NavItem icon="receipt" label="Pembelian" id="purchases" />
-                            <NavItem icon="scale" label="Scaler" id="recipes" />
-                            <NavItem icon="bar-chart-3" label="Analitik" id="reports" />
-                            <NavItem icon="settings" label="Tetapan" id="settings" />
-                        </nav>
-                        <button onClick={() => signOut(auth)} className="mt-8 flex items-center space-x-3 p-4 text-zinc-700 hover:text-red-500 transition-colors border-t border-zinc-900 font-bold uppercase text-[10px] tracking-widest leading-none italic">
-                            <Icon name="log-out" size={16} /> <span>Log Out</span>
-                        </button>
-                    </aside>
-
-                    {/* Mobile Header */}
-                    <header className="lg:hidden flex items-center justify-between p-6 border-b border-[#1a1a1a] sticky top-0 bg-black/95 backdrop-blur-xl z-[60] w-full">
-                        <div className="flex items-center space-x-3">
-                            <Icon name="coffee" className="text-white" size={24} />
-                            <h1 className="font-black italic tracking-tighter text-xl text-white uppercase">KMY BRU</h1>
-                        </div>
-                        <button onClick={() => setSidebarOpen(true)} className="p-3 bg-zinc-900 rounded-2xl text-white">
-                            <Icon name="menu" size={24} />
-                        </button>
-                    </header>
-
-                    {/* Mobile Menu */}
-                    {sidebarOpen && (
-                        <div className="lg:hidden fixed inset-0 bg-black z-[200] p-8 flex flex-col fade-in overflow-y-auto">
-                            <div className="flex justify-between items-center mb-12 flex-shrink-0 border-b border-zinc-900 pb-8 text-white">
-                                <h1 className="text-2xl font-black italic tracking-tighter uppercase italic">SISTEM MENU</h1>
-                                <button onClick={() => setSidebarOpen(false)} className="p-3 bg-zinc-900 rounded-2xl text-white"><Icon name="x" size={24} /></button>
-                            </div>
-                            <nav className="flex-1 space-y-4">
-                                <NavItem icon="layout-dashboard" label="Dashboard" id="dashboard" />
-                                <NavItem icon="shopping-cart" label="Order Baru" id="sales" />
-                                <NavItem icon="book-open" label="Menu & Resipi" id="products" />
-                                <NavItem icon="package" label="Inventori" id="inventory" />
-                                <NavItem icon="receipt" label="Pembelian" id="purchases" />
-                                <NavItem icon="scale" label="Scaler" id="recipes" />
-                                <NavItem icon="bar-chart-3" label="Analitik" id="reports" />
-                                <NavItem icon="settings" label="Tetapan" id="settings" />
-                            </nav>
-                        </div>
-                    )}
-
-                    <main className="lg:ml-72 flex-1 p-6 lg:p-16 relative z-10 pb-32 min-h-screen">
-                        <div className="max-w-6xl mx-auto h-full">
-                            {view === 'dashboard' && <DashboardView sales={sales} />}
-                            {view === 'sales' && <SalesPage user={user} sales={sales} products={products} ingredients={ingredients} recipes={recipes} settings={settings} />}
-                            {view === 'products' && <ProductsView user={user} products={products} ingredients={ingredients} recipes={recipes} />}
-                            {view === 'inventory' && <InventoryView user={user} ingredients={ingredients} />}
-                            {view === 'purchases' && <PurchasesView user={user} purchases={purchases} ingredients={ingredients} />}
-                            {view === 'recipes' && <RecipeView user={user} recipes={recipes} products={products} ingredients={ingredients} />}
-                            {view === 'reports' && <ReportsView sales={sales} />}
-                            {view === 'settings' && <SettingsView user={user} settings={settings} />}
-                        </div>
-                    </main>
-                </div>
-            );
-        }
-
-        // --- AUTH PAGE ---
         function AuthPage() {
             const [isLogin, setIsLogin] = useState(true);
             const [email, setEmail] = useState('');
@@ -262,154 +149,445 @@
             };
 
             return (
-                <div className="min-h-screen bg-black flex items-center justify-center p-8 text-white relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-br from-zinc-900/20 to-black pointer-events-none z-0"></div>
-                    <div className="w-full max-w-sm space-y-16 fade-in relative z-10">
-                        <div className="text-center space-y-8">
-                            <div className="w-24 h-24 bg-white rounded-[2rem] mx-auto flex items-center justify-center rotate-6 shadow-[0_15px_60px_rgba(255,255,255,0.25)] transition-all hover:rotate-0 duration-500 scale-110">
-                                <Icon name="coffee" className="text-black" size={48} />
+                <div className="min-h-screen bg-black flex items-center justify-center p-8">
+                    <div className="w-full max-w-sm space-y-10 fade-in">
+                        <div className="text-center space-y-3">
+                            <div className="w-16 h-16 bg-white rounded-2xl mx-auto flex items-center justify-center shadow-2xl">
+                                <Icon name="coffee" className="text-black" size={32} />
                             </div>
-                            <div><h1 className="text-6xl font-black italic tracking-tighter text-white uppercase leading-none italic">KMY BRU</h1><p className="text-zinc-800 text-[10px] font-black uppercase tracking-[0.6em] mt-5 italic opacity-60 uppercase">Master Interface</p></div>
+                            <h1 className="text-3xl header-text text-white">KMY BRU</h1>
+                            <p className="text-zinc-600 text-[9px] header-text tracking-[0.4em]">Master Dashboard</p>
                         </div>
-                        <form onSubmit={handleAuth} className="space-y-6">
-                            <input type="email" placeholder="E-MEL OPERATOR" className="w-full bg-black border border-[#222] focus:border-white focus:ring-1 focus:ring-white rounded-[1.5rem] px-8 py-5 text-[11px] font-black uppercase tracking-[0.3em] outline-none text-center italic text-white" value={email} onChange={e => setEmail(e.target.value)} required />
-                            <input type="password" placeholder="PASSWORD" className="w-full bg-black border border-[#222] focus:border-white focus:ring-1 focus:ring-white rounded-[1.5rem] px-8 py-5 text-[11px] font-black tracking-[0.3em] outline-none text-center italic text-white" value={password} onChange={e => setPassword(e.target.value)} required />
-                            {error && <p className="text-red-500 text-[10px] font-black text-center uppercase tracking-[0.2em] animate-pulse italic">{error}</p>}
-                            <button type="submit" className="w-full bg-white text-black font-black py-6 rounded-[1.5rem] shadow-2xl transition-all uppercase tracking-[0.4em] text-[11px] active:scale-95 italic font-black uppercase">
-                                {isLogin ? 'ENTER CLOUD' : 'INITIALIZE'}
+                        <form onSubmit={handleAuth} className="space-y-4">
+                            <input type="email" placeholder="E-MEL" className="bru-input text-center" value={email} onChange={e => setEmail(e.target.value)} required />
+                            <input type="password" placeholder="PASSWORD" className="bru-input text-center" value={password} onChange={e => setPassword(e.target.value)} required />
+                            {error && <p className="text-red-500 text-[10px] font-bold text-center uppercase tracking-wider">{error}</p>}
+                            <button type="submit" className="w-full bg-white text-black py-4 rounded-xl header-text text-xs hover:bg-zinc-200 transition-all btn-action">
+                                {isLogin ? 'LOG MASUK' : 'DAFTAR AKSES'}
                             </button>
                         </form>
-                        <p className="text-center text-zinc-700 text-[10px] uppercase tracking-[0.3em] font-black italic">
-                            {isLogin ? "No Access? " : "Registered? "}
-                            <button onClick={() => setIsLogin(!isLogin)} className="text-white hover:underline transition-colors ml-3 uppercase italic tracking-widest">{isLogin ? 'Join Here' : 'Login'}</button>
-                        </p>
+                        <button onClick={() => setIsLogin(!isLogin)} className="w-full text-zinc-600 text-[10px] header-text hover:text-white transition-colors">
+                            {isLogin ? "TIADA AKAUN? DAFTAR" : "SUDAH ADA AKAUN? MASUK"}
+                        </button>
                     </div>
                 </div>
             );
         }
 
-        // --- DASHBOARD VIEW ---
         function DashboardView({ sales }) {
             const stats = useMemo(() => {
                 const profit = sales.reduce((acc, s) => acc + (s.totalProfit || 0), 0);
                 const revenue = sales.reduce((acc, s) => acc + (s.totalPrice || 0), 0);
                 return { profit, revenue, count: sales.length };
             }, [sales]);
+
             return (
-                <div className="space-y-12 fade-in italic">
-                    <header><p className="text-zinc-600 uppercase tracking-[0.4em] text-[10px] font-black mb-3 opacity-40 italic">Business Overview</p><h2 className="text-5xl font-black tracking-tighter uppercase italic leading-none italic uppercase">DASHBOARD</h2></header>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 text-white">
-                        <StatCard label="Untung Bersih" value={formatRM(stats.profit)} icon="trending-up" color="emerald" />
-                        <StatCard label="Jumlah Hasil" value={formatRM(stats.revenue)} icon="receipt" color="white" />
-                        <StatCard label="Bil. Order" value={stats.count} icon="shopping-cart" color="zinc" />
-                    </div>
-                    <div className="bg-[#0c0c0c] border border-[#1a1a1a] p-10 rounded-[3rem] h-[28rem] shadow-2xl">
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500 mb-10 flex items-center gap-2 italic uppercase">Aktiviti Jualan Mingguan</h3>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={sales.slice(-10)}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1a1a1a" />
-                                <XAxis dataKey="timestamp" hide />
-                                <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ backgroundColor: '#000', border: '1px solid #333', borderRadius: '25px' }} />
-                                <Bar dataKey="totalPrice" fill="#fff" radius={[10, 10, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
+                <div className="space-y-8 fade-in">
+                    <header><p className="text-zinc-500 header-text text-[10px] mb-1 uppercase tracking-widest leading-none">Intelligence</p><h2 className="text-6xl header-text leading-none italic">OVERVIEW</h2></header>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="bg-[#080808] border border-[#111] p-8 rounded-2xl">
+                            <p className="text-zinc-600 header-text text-[9px] mb-2 tracking-widest uppercase">Untung Bersih</p>
+                            <h4 className="text-3xl header-text text-emerald-500 leading-none">{formatRM(stats.profit)}</h4>
+                        </div>
+                        <div className="bg-[#080808] border border-[#111] p-8 rounded-2xl">
+                            <p className="text-zinc-600 header-text text-[9px] mb-2 tracking-widest uppercase">Hasil Jualan</p>
+                            <h4 className="text-3xl header-text text-white leading-none">{formatRM(stats.revenue)}</h4>
+                        </div>
+                        <div className="bg-[#080808] border border-[#111] p-8 rounded-2xl">
+                            <p className="text-zinc-600 header-text text-[9px] mb-2 tracking-widest uppercase">Bil. Order</p>
+                            <h4 className="text-3xl header-text text-zinc-500 leading-none">{stats.count}</h4>
+                        </div>
                     </div>
                 </div>
             );
         }
 
-        const StatCard = ({ label, value, icon, color }) => (
-            <div className="bg-[#0c0c0c] border border-[#1a1a1a] p-10 rounded-[2.5rem] relative overflow-hidden group hover:scale-[1.03] transition-all shadow-xl">
-                <Icon name={icon} size={56} className="absolute top-8 right-8 text-zinc-900 opacity-20 group-hover:opacity-40 transition-opacity" />
-                <p className="text-zinc-600 text-[10px] font-black uppercase tracking-[0.4em] mb-4 italic uppercase">{label}</p>
-                <h4 className={`text-3xl font-black tracking-tighter ${color === 'emerald' ? 'text-emerald-500' : 'text-white'}`}>{value}</h4>
-            </div>
-        );
-
-        // --- SALES VIEW ---
         function SalesPage({ user, sales, products, ingredients, recipes, settings }) {
-            const [isModalOpen, setIsModalOpen] = useState(false);
-            const saveSale = async (e) => {
+            const [isOpen, setIsOpen] = useState(false);
+            
+            const handleOrder = async (e) => {
                 e.preventDefault();
-                const formData = new FormData(e.target);
-                const pId = formData.get('pId');
-                const qty = parseInt(formData.get('qty')) || 0;
+                const fd = new FormData(e.target);
+                const pId = fd.get('pId');
+                const qty = parseInt(fd.get('qty')) || 0;
                 const product = products.find(p => p.id === pId);
                 const recipe = recipes.find(r => r.productId === pId);
                 if (!product) return;
+
                 let cost = 0;
-                if (recipe) recipe.ingredients.forEach(ri => {
-                    const ing = ingredients.find(i => i.id === ri.ingredientId);
-                    if (ing) cost += (ri.quantityPerBottle * (ing.avgUnitCostRM || 0));
+                if (recipe) {
+                    recipe.ingredients.forEach(ri => {
+                        const ing = ingredients.find(i => i.id === ri.ingredientId);
+                        if (ing) cost += (ri.quantityPerBottle * (ing.avgUnitCostRM || 0));
+                    });
+                }
+                
+                const base = ['artifacts', activeAppId, 'users', user.uid, 'sales'];
+                await addDoc(collection(db, ...base), {
+                    productName: product.name, quantitySold: qty, totalPrice: qty * product.price, totalCost: qty * cost, totalProfit: (qty * product.price) - (qty * cost), timestamp: Timestamp.now()
                 });
-                const revenue = qty * product.price;
-                const data = { productName: product.name, quantitySold: qty, totalPrice: revenue, totalCost: qty * cost, totalProfit: revenue - (qty * cost), timestamp: Timestamp.now() };
-                try {
-                    await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'sales'), data);
-                    if (settings.autoDeduct && recipe) {
-                        for (const ri of recipe.ingredients) {
-                            await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'ingredients', ri.ingredientId), { currentStock: increment(-(ri.quantityPerBottle * qty)) });
-                        }
+
+                if (settings.autoDeduct && recipe) {
+                    for (const ri of recipe.ingredients) {
+                        await updateDoc(doc(db, 'artifacts', activeAppId, 'users', user.uid, 'ingredients', ri.ingredientId), {
+                            currentStock: increment(-(ri.quantityPerBottle * qty))
+                        });
                     }
-                    setIsModalOpen(false);
-                } catch (err) { console.error(err); }
+                }
+                setIsOpen(false);
             };
+
+            const remove = async (id) => {
+                if (!confirm("Padam rekod ini?")) return;
+                await deleteDoc(doc(db, 'artifacts', activeAppId, 'users', user.uid, 'sales', id));
+            };
+
             return (
-                <div className="space-y-12 fade-in">
-                    <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-8 text-white italic">
-                        <div><p className="text-zinc-600 uppercase tracking-[0.5em] text-[10px] font-black mb-3 opacity-40 uppercase">Transactions</p><h2 className="text-5xl font-black tracking-tighter uppercase leading-none italic uppercase">REKOD JUALAN</h2></div>
-                        <button onClick={() => setIsModalOpen(true)} className="bg-white text-black px-10 py-5 rounded-[1.5rem] text-[10px] font-black flex items-center justify-center space-x-3 active:scale-95 shadow-2xl transition-all uppercase tracking-widest italic font-black uppercase"><Icon name="plus" size={18} /> <span>Order Baru</span></button>
+                <div className="space-y-8 fade-in">
+                    <header className="flex justify-between items-end">
+                        <div><p className="text-zinc-500 header-text text-[10px] mb-1">Live</p><h2 className="text-6xl header-text leading-none italic uppercase">JUALAN</h2></div>
+                        <button onClick={() => setIsOpen(true)} className="bg-white text-black px-6 py-3 rounded-xl header-text text-[10px] btn-action flex items-center gap-2"><Icon name="plus" size={16}/> Baru</button>
                     </header>
-                    <div className="bg-[#0c0c0c] border border-[#1a1a1a] rounded-[3.5rem] overflow-hidden shadow-2xl">
-                        <div className="overflow-x-auto text-white">
-                            <table className="w-full text-left text-sm text-white italic">
-                                <thead>
-                                    <tr className="border-b border-[#1f1f1f] text-zinc-600 uppercase text-[10px] font-black bg-zinc-900/50 italic">
-                                        <th className="px-10 py-8 uppercase tracking-widest">Produk / Waktu</th>
-                                        <th className="px-10 py-8 text-center uppercase tracking-widest">Qty</th>
-                                        <th className="px-10 py-8 text-right uppercase tracking-widest">Profit (RM)</th>
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead><tr className="text-zinc-600 header-text text-[9px] italic"><th>Produk / Masa</th><th className="text-center">Qty</th><th className="text-right">Profit</th><th className="text-center w-16">Padam</th></tr></thead>
+                            <tbody>
+                                {sales.sort((a,b) => b.timestamp - a.timestamp).map(s => (
+                                    <tr key={s.id}>
+                                        <td><div className="font-bold text-sm uppercase italic">{s.productName}</div><div className="text-[9px] opacity-40 mt-1 uppercase">{s.timestamp?.toDate().toLocaleString()}</div></td>
+                                        <td className="text-center font-bold text-xl">{s.quantitySold}</td>
+                                        <td className="text-right font-bold text-lg text-emerald-500">{formatRM(s.totalProfit)}</td>
+                                        <td className="text-center">
+                                            <button onClick={() => remove(s.id)} className="text-zinc-800 hover:text-rose-500 p-2"><Icon name="trash-2" size={16}/></button>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody className="divide-y divide-[#161616]">
-                                    {sales.sort((a,b) => b.timestamp - a.timestamp).map(s => (
-                                        <tr key={s.id} className="hover:bg-white/[0.02] transition-colors group italic">
-                                            <td className="px-10 py-10 font-black text-xl uppercase tracking-tighter mb-1 leading-none italic uppercase">{s.productName} <span className="block text-[9px] text-zinc-700 not-italic mt-1 uppercase italic">{s.timestamp?.toDate().toLocaleString()}</span></td>
-                                            <td className="px-10 py-10 text-center font-mono font-black text-2xl group-hover:scale-110 transition-transform italic leading-none">{s.quantitySold}</td>
-                                            <td className="px-10 py-10 text-right font-mono font-black text-2xl text-emerald-500 tracking-tighter italic leading-none">{formatRM(s.totalProfit)}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
-                    <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Daftar Order Baru">
-                        <form onSubmit={saveSale} className="space-y-10 italic">
-                            <div className="space-y-3 text-white italic"><label className="text-[10px] font-black uppercase text-zinc-500 italic uppercase">Pilih Menu Produk</label>
-                            <select name="pId" required className="w-full bg-black border border-[#222] rounded-[1.5rem] px-8 py-5 text-xs font-black uppercase outline-none shadow-xl text-white italic">
-                                <option value="" className="text-zinc-800 uppercase italic">SILA PILIH...</option>
-                                {products.map(p => <option key={p.id} value={p.id} className="text-zinc-800 font-bold uppercase italic">{p.name} ({formatRM(p.price)})</option>)}
-                            </select></div>
-                            <div className="space-y-3 text-white text-center italic"><label className="text-[10px] font-black uppercase text-zinc-500 italic block uppercase">Bilangan Unit</label>
-                            <input name="qty" type="number" defaultValue={1} min={1} required className="w-full bg-transparent border-b-2 border-zinc-900 focus:border-white p-6 text-7xl font-black outline-none font-mono text-white text-center shadow-inner uppercase italic leading-none tracking-tighter" /></div>
-                            <button type="submit" className="w-full bg-white text-black font-black py-6 rounded-[1.5rem] shadow-2xl uppercase text-[10px] tracking-[0.2em] active:scale-95 transition-all italic font-black uppercase italic leading-none">Sahkan Jualan</button>
+                    <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Pendaftaran Pesanan">
+                        <form onSubmit={handleOrder} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <label className="text-[9px] header-text text-zinc-500 uppercase">Pilih Menu Produk</label>
+                                <select name="pId" required className="bru-input italic font-bold">
+                                    <option value="">Sila Pilih...</option>
+                                    {products.map(p => <option key={p.id} value={p.id} className="text-black">{p.name} ({formatRM(p.price)})</option>)}
+                                </select>
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[9px] header-text text-zinc-500 uppercase text-center block">Unit</label>
+                                <input name="qty" type="number" defaultValue={1} min={1} required className="bru-input text-center font-black" />
+                            </div>
+                            <div className="md:col-span-2 pt-4">
+                                <button type="submit" className="w-full bg-white text-black py-4 rounded-xl header-text text-xs btn-action italic">Sahkan Jualan</button>
+                            </div>
                         </form>
                     </Modal>
                 </div>
             );
         }
 
-        // --- VIEWS ---
-        function ProductsView() { return <div className="py-20 text-center text-zinc-800 font-black tracking-[0.5em] italic uppercase">Modul Katalog Sedia Digunakan</div>; }
-        function InventoryView() { return <div className="py-20 text-center text-zinc-800 font-black tracking-[0.5em] italic uppercase">Modul Inventori Sedia Digunakan</div>; }
-        function PurchasesView() { return <div className="py-20 text-center text-zinc-800 font-black tracking-[0.5em] italic uppercase">Modul Pembelian Sedia Digunakan</div>; }
-        function RecipeView() { return <div className="py-20 text-center text-zinc-800 font-black tracking-[0.5em] italic uppercase">Modul Scaler Sedia Digunakan</div>; }
-        function ReportsView() { return <div className="py-20 text-center text-zinc-800 font-black tracking-[0.5em] italic uppercase">Modul Laporan Sedia Digunakan</div>; }
-        function SettingsView() { return <div className="py-20 text-center text-zinc-800 font-black tracking-[0.5em] italic uppercase">Modul Tetapan Sedia Digunakan</div>; }
+        function ProductsView({ user, products, ingredients, recipes }) {
+            const [isModalOpen, setIsModalOpen] = useState(false);
+            const [activeRecipe, setActiveRecipe] = useState(null);
 
-        // --- ROOT RENDER ---
+            const remove = async (id) => {
+                if (!confirm("Padam menu ini?")) return;
+                await deleteDoc(doc(db, 'artifacts', activeAppId, 'users', user.uid, 'products', id));
+            };
+
+            return (
+                <div className="space-y-8 fade-in">
+                    <header className="flex justify-between items-end">
+                        <div><p className="text-zinc-500 header-text text-[10px] mb-1">Catalog</p><h2 className="text-6xl header-text leading-none italic uppercase">MENU</h2></div>
+                        <button onClick={() => setIsModalOpen(true)} className="bg-white text-black px-6 py-3 rounded-xl header-text text-[10px] btn-action italic uppercase font-bold">Tambah</button>
+                    </header>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {products.map(p => (
+                            <div key={p.id} className="bg-[#080808] border border-[#111] p-6 rounded-2xl space-y-4 hover:border-white transition-all group">
+                                <h4 className="text-lg header-text uppercase italic leading-tight">{p.name}</h4>
+                                <div className="flex justify-between items-center pt-3 border-t border-[#111]">
+                                    <p className="text-zinc-500 text-[10px] font-bold">{p.volume}ml • {formatRM(p.price)}</p>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => setActiveRecipe(recipes.find(r => r.productId === p.id) || { productId: p.id, ingredients: [] })} className="bg-zinc-900 p-2 rounded-lg hover:bg-white hover:text-black transition-all"><Icon name="book-open" size={14}/></button>
+                                        <button onClick={() => remove(p.id)} className="bg-zinc-900 p-2 rounded-lg text-rose-500 hover:bg-rose-500 hover:text-white transition-all"><Icon name="trash-2" size={14}/></button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    
+                    <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Menu Baru">
+                        <form onSubmit={async (e) => {
+                            e.preventDefault();
+                            const fd = new FormData(e.target);
+                            await addDoc(collection(db, 'artifacts', activeAppId, 'users', user.uid, 'products'), {
+                                name: fd.get('n').toUpperCase(), volume: parseFloat(fd.get('v')), price: parseFloat(fd.get('p'))
+                            });
+                            setIsModalOpen(false);
+                        }} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                            <div className="md:col-span-1"><label className="text-[9px] text-zinc-600 uppercase">Nama</label><input name="n" className="bru-input font-bold" required /></div>
+                            <div><label className="text-[9px] text-zinc-600 uppercase">Saiz (ML)</label><input name="v" type="number" className="bru-input text-center" required /></div>
+                            <div><label className="text-[9px] text-zinc-600 uppercase">Harga (RM)</label><input name="p" type="number" step="0.1" className="bru-input text-center" required /></div>
+                            <div className="md:col-span-3 pt-2"><button type="submit" className="w-full bg-white text-black py-4 rounded-xl header-text text-xs btn-action italic">Simpan Katalog</button></div>
+                        </form>
+                    </Modal>
+
+                    <Modal isOpen={!!activeRecipe} onClose={() => setActiveRecipe(null)} title={`Formula: ${products.find(p => p.id === activeRecipe?.productId)?.name}`}>
+                        <div className="space-y-6">
+                            <div className="flex gap-2 items-end">
+                                <div className="flex-1"><label className="text-[9px] text-zinc-600 uppercase block mb-1">Tambah Bahan Mentah</label>
+                                <select id="add-ing" className="bru-input uppercase text-xs font-bold italic">
+                                    <option value="">Pilih Dari Gudang...</option>
+                                    {ingredients.map(i => <option key={i.id} value={i.id} className="text-black">{i.name}</option>)}
+                                </select></div>
+                                <button onClick={async () => {
+                                    const id = document.getElementById('add-ing').value; if(!id) return;
+                                    const ing = ingredients.find(i => i.id === id);
+                                    const newIngs = [...activeRecipe.ingredients, { ingredientId: id, name: ing.name, quantityPerBottle: 0, unit: ing.unit }];
+                                    const upd = { ...activeRecipe, ingredients: newIngs };
+                                    const base = ['artifacts', activeAppId, 'users', user.uid, 'recipes'];
+                                    if(activeRecipe.id) await updateDoc(doc(db, ...base, activeRecipe.id), upd);
+                                    else { const ref = await addDoc(collection(db, ...base), upd); setActiveRecipe({...upd, id: ref.id}); }
+                                    setActiveRecipe(upd);
+                                }} className="bg-white text-black px-6 py-3 rounded-xl header-text text-[10px] btn-action">Tambah</button>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {activeRecipe?.ingredients.map((ri, idx) => (
+                                    <div key={idx} className="flex items-center gap-3 bg-zinc-900/40 p-4 rounded-xl border border-zinc-800">
+                                        <div className="flex-1 text-[11px] font-bold uppercase italic">{ri.name}</div>
+                                        <input type="number" value={ri.quantityPerBottle} step="0.1" onChange={async (e) => {
+                                            const val = parseFloat(e.target.value) || 0;
+                                            const newIngs = activeRecipe.ingredients.map((it, i) => i === idx ? {...it, quantityPerBottle: val} : it);
+                                            const upd = {...activeRecipe, ingredients: newIngs};
+                                            setActiveRecipe(upd);
+                                            await updateDoc(doc(db, 'artifacts', activeAppId, 'users', user.uid, 'recipes', activeRecipe.id), upd);
+                                        }} className="bg-black border border-zinc-800 w-20 p-2 rounded-lg text-sm text-center outline-none italic" />
+                                        <span className="text-[9px] opacity-40 uppercase">{ri.unit}</span>
+                                        <button onClick={async () => {
+                                            const newIngs = activeRecipe.ingredients.filter((_, i) => i !== idx);
+                                            const upd = {...activeRecipe, ingredients: newIngs};
+                                            setActiveRecipe(upd);
+                                            await updateDoc(doc(db, 'artifacts', activeAppId, 'users', user.uid, 'recipes', activeRecipe.id), upd);
+                                        }} className="text-zinc-800 hover:text-rose-500 transition-colors"><Icon name="trash-2" size={16} /></button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </Modal>
+                </div>
+            );
+        }
+
+        function InventoryView({ user, ingredients }) {
+            const [isModalOpen, setIsModalOpen] = useState(false);
+            const remove = async (id) => {
+                if (!confirm("Padam bahan mentah ini?")) return;
+                await deleteDoc(doc(db, 'artifacts', activeAppId, 'users', user.uid, 'ingredients', id));
+            };
+
+            return (
+                <div className="space-y-8 fade-in">
+                    <header className="flex justify-between items-end">
+                        <div><p className="text-zinc-500 header-text text-[10px] mb-1">Supplies</p><h2 className="text-6xl header-text leading-none italic uppercase">GUDANG</h2></div>
+                        <button onClick={() => setIsModalOpen(true)} className="bg-white text-black px-6 py-3 rounded-xl header-text text-[10px] btn-action italic font-bold">Baru</button>
+                    </header>
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead><tr className="text-zinc-600 header-text text-[9px] italic"><th>Bahan</th><th className="text-center">Baki</th><th className="text-right">Unit Cost</th><th className="text-center w-16">Padam</th></tr></thead>
+                            <tbody>
+                                {ingredients.map(i => (
+                                    <tr key={i.id}>
+                                        <td className="font-bold text-lg uppercase italic leading-none">{i.name}</td>
+                                        <td className="text-center text-3xl font-black italic">{i.currentStock}<span className="text-[10px] opacity-20 ml-1 uppercase font-bold">{i.unit}</span></td>
+                                        <td className="text-right text-zinc-500 font-semibold italic">{formatRM(i.avgUnitCostRM)}</td>
+                                        <td className="text-center">
+                                            <button onClick={() => remove(i.id)} className="text-zinc-800 hover:text-rose-500 p-2 transition-colors"><Icon name="trash-2" size={18}/></button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Pendaftaran Bahan">
+                        <form onSubmit={async (e) => {
+                            e.preventDefault();
+                            const fd = new FormData(e.target);
+                            await addDoc(collection(db, 'artifacts', activeAppId, 'users', user.uid, 'ingredients'), {
+                                name: fd.get('n').toUpperCase(), category: fd.get('c'), unit: fd.get('u'), currentStock: parseFloat(fd.get('s')) || 0, avgUnitCostRM: parseFloat(fd.get('k')) || 0
+                            });
+                            setIsModalOpen(false);
+                        }} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="md:col-span-2"><label className="text-[9px] text-zinc-600 uppercase">Nama Bahan Mentah</label><input name="n" className="bru-input italic font-bold uppercase" required /></div>
+                            <div><label className="text-[9px] text-zinc-600 uppercase">Unit</label><select name="u" className="bru-input font-bold italic"><option value="ml">ML</option><option value="g">G</option><option value="pcs">PCS</option></select></div>
+                            <div><label className="text-[9px] text-zinc-600 uppercase">Stok Asal</label><input name="s" type="number" step="0.01" className="bru-input text-center" required /></div>
+                            <div className="md:col-span-2"><label className="text-[9px] text-zinc-600 uppercase">Kos Purata Seunit (RM)</label><input name="k" type="number" step="0.0001" className="bru-input text-center" required /></div>
+                            <button type="submit" className="md:col-span-2 bg-white text-black py-4 rounded-xl header-text text-xs btn-action mt-2 italic">Simpan Data</button>
+                        </form>
+                    </Modal>
+                </div>
+            );
+        }
+
+        function PurchasesView({ user, purchases, ingredients }) {
+            const [isModalOpen, setIsModalOpen] = useState(false);
+            const remove = async (id) => {
+                if (!confirm("Padam rekod pembelian?")) return;
+                await deleteDoc(doc(db, 'artifacts', activeAppId, 'users', user.uid, 'purchases', id));
+            };
+
+            return (
+                <div className="space-y-8 fade-in">
+                    <header className="flex justify-between items-end">
+                        <div><p className="text-zinc-500 header-text text-[10px] mb-1">Injection</p><h2 className="text-6xl header-text leading-none italic uppercase">PEMBELIAN</h2></div>
+                        <button onClick={() => setIsModalOpen(true)} className="bg-white text-black px-6 py-3 rounded-xl header-text text-[10px] btn-action italic font-bold">Baru</button>
+                    </header>
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead><tr className="text-zinc-600 header-text text-[9px] italic"><th>Tarikh</th><th>Item</th><th className="text-right">RM</th><th className="text-center w-16">Padam</th></tr></thead>
+                            <tbody>
+                                {purchases.sort((a,b) => b.timestamp - a.timestamp).map(p => (
+                                    <tr key={p.id}>
+                                        <td className="text-zinc-700 text-[10px] font-mono uppercase leading-none">{p.timestamp?.toDate().toLocaleDateString()}</td>
+                                        <td className="font-bold text-lg uppercase italic leading-none">{p.ingName} <span className="text-[9px] opacity-20 ml-2">({p.qty}{p.unit})</span></td>
+                                        <td className="text-right font-bold text-xl leading-none">{formatRM(p.cost)}</td>
+                                        <td className="text-center">
+                                            <button onClick={() => remove(p.id)} className="text-zinc-900 hover:text-rose-500 p-2 transition-colors"><Icon name="trash-2" size={16}/></button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Log Pembelian Stok">
+                        <form onSubmit={async (e) => {
+                            e.preventDefault();
+                            const f = new FormData(e.target);
+                            const iId = f.get('id'); const q = parseFloat(f.get('q')); const c = parseFloat(f.get('c'));
+                            const ing = ingredients.find(i => i.id === iId);
+                            if (!ing) return;
+                            const nS = ing.currentStock + q;
+                            const nA = (ing.currentStock * ing.avgUnitCostRM + c) / nS;
+                            const base = ['artifacts', activeAppId, 'users', user.uid];
+                            await addDoc(collection(db, ...base, 'purchases'), { ingName: ing.name, qty: q, cost: c, unit: ing.unit, timestamp: Timestamp.now() });
+                            await updateDoc(doc(db, ...base, 'ingredients', iId), { currentStock: increment(q), avgUnitCostRM: nA });
+                            setIsModalOpen(false);
+                        }} className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                            <div className="md:col-span-2">
+                                <label className="text-[9px] text-zinc-600 uppercase">Pilih Bahan</label>
+                                <select name="id" required className="bru-input uppercase italic font-bold">
+                                    <option value="">Pilih Dari Inventori...</option>
+                                    {ingredients.map(i => <option key={i.id} value={i.id} className="text-black">{i.name}</option>)}
+                                </select>
+                            </div>
+                            <div><label className="text-[9px] text-zinc-600 uppercase">Kuantiti</label><input name="q" type="number" step="0.01" className="bru-input text-center" required /></div>
+                            <div><label className="text-[9px] text-zinc-600 uppercase">Harga Total (RM)</label><input name="c" type="number" step="0.01" className="bru-input text-center" required /></div>
+                            <button type="submit" className="md:col-span-2 bg-white text-black py-4 rounded-xl header-text text-xs btn-action mt-2 italic">Daftar Transaksi</button>
+                        </form>
+                    </Modal>
+                </div>
+            );
+        }
+
+        // --- MASTER APP ---
+
+        function App() {
+            const [user, setUser] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [view, setView] = useState('dashboard');
+            const [sidebarOpen, setSidebarOpen] = useState(false);
+            
+            const [products, setProducts] = useState([]);
+            const [ingredients, setIngredients] = useState([]);
+            const [recipes, setRecipes] = useState([]);
+            const [sales, setSales] = useState([]);
+            const [purchases, setPurchases] = useState([]);
+            const [settings, setSettings] = useState({ autoDeduct: true, watermark: true, logoUrl: null });
+
+            useEffect(() => {
+                return onAuthStateChanged(auth, u => { setUser(u); setLoading(false); });
+            }, []);
+
+            useEffect(() => {
+                if (!user) return;
+                const base = ['artifacts', activeAppId, 'users', user.uid];
+                const unsub = [
+                    onSnapshot(collection(db, ...base, 'products'), s => setProducts(s.docs.map(d => ({id: d.id, ...d.data()})))),
+                    onSnapshot(collection(db, ...base, 'ingredients'), s => setIngredients(s.docs.map(d => ({id: d.id, ...d.data()})))),
+                    onSnapshot(collection(db, ...base, 'recipes'), s => setRecipes(s.docs.map(d => ({id: d.id, ...d.data()})))),
+                    onSnapshot(collection(db, ...base, 'sales'), s => setSales(s.docs.map(d => ({id: d.id, ...d.data()})))),
+                    onSnapshot(collection(db, ...base, 'purchases'), s => setPurchases(s.docs.map(d => ({id: d.id, ...d.data()})))),
+                    onSnapshot(doc(db, ...base, 'settings', 'config'), s => s.exists() && setSettings(s.data()))
+                ];
+                return () => unsub.forEach(f => f());
+            }, [user]);
+
+            if (loading) return (
+                <div className="min-h-screen bg-black flex flex-col items-center justify-center text-white">
+                    <div className="w-8 h-8 border-t-2 border-white rounded-full animate-spin mb-4"></div>
+                    <p className="text-[8px] header-text opacity-30 italic uppercase tracking-[0.4em]">Master Session Authenticating</p>
+                </div>
+            );
+
+            if (!user) return <AuthPage />;
+
+            const NavItem = ({ icon, label, id }) => (
+                <button onClick={() => { setView(id); setSidebarOpen(false); }} className={`flex items-center gap-4 px-6 py-4 rounded-xl transition-all w-full text-left ${view === id ? 'bg-white text-black shadow-2xl scale-[1.02]' : 'text-zinc-600 hover:text-white hover:bg-zinc-900'}`}>
+                    <Icon name={icon} size={18} />
+                    <span className="text-[10px] header-text tracking-widest italic">{label}</span>
+                </button>
+            );
+
+            return (
+                <div className="min-h-screen bg-black text-white flex flex-col lg:flex-row overflow-x-hidden selection:bg-white selection:text-black">
+                    <aside className="hidden lg:flex flex-col w-64 fixed h-full border-r border-[#111] p-6 z-[60] bg-black">
+                        <div className="mb-10 flex items-center gap-3 px-2">
+                            <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center rotate-3 shadow-2xl"><Icon name="coffee" className="text-black" size={20} /></div>
+                            <h1 className="text-lg header-text text-white italic">KMY BRU</h1>
+                        </div>
+                        <nav className="flex-1 space-y-1">
+                            <NavItem icon="layout-dashboard" label="Dashboard" id="dashboard" />
+                            <NavItem icon="shopping-cart" label="Jualan" id="sales" />
+                            <NavItem icon="book-open" label="Katalog" id="products" />
+                            <NavItem icon="package" label="Inventori" id="inventory" />
+                            <NavItem icon="receipt" label="Pembelian" id="purchases" />
+                        </nav>
+                        <button onClick={() => signOut(auth)} className="mt-8 p-3 border border-zinc-900 rounded-lg text-[8px] header-text text-zinc-800 hover:text-rose-500 hover:border-rose-500/20 transition-all uppercase italic font-bold">Sign Out</button>
+                    </aside>
+
+                    <header className="lg:hidden flex items-center justify-between p-6 border-b border-[#111] sticky top-0 bg-black/95 backdrop-blur-xl z-[60] w-full text-white">
+                        <div className="flex items-center gap-3"><Icon name="coffee" size={20} /><h1 className="header-text text-lg italic uppercase">KMY BRU</h1></div>
+                        <button onClick={() => setSidebarOpen(true)} className="p-2 bg-zinc-950 rounded-lg border border-[#111]"><Icon name="menu" size={20} /></button>
+                    </header>
+
+                    {sidebarOpen && (
+                        <div className="lg:hidden fixed inset-0 bg-black z-[200] p-10 flex flex-col fade-in overflow-y-auto italic">
+                            <div className="flex justify-between items-center mb-16"><h1 className="text-3xl header-text italic uppercase">MENU</h1><button onClick={() => setSidebarOpen(false)} className="p-3 bg-zinc-900 rounded-lg"><Icon name="x" size={24} /></button></div>
+                            <nav className="flex-1 space-y-4">
+                                <NavItem icon="layout-dashboard" label="Dashboard" id="dashboard" />
+                                <NavItem icon="shopping-cart" label="Jualan" id="sales" />
+                                <NavItem icon="book-open" label="Katalog" id="products" />
+                                <NavItem icon="package" label="Inventori" id="inventory" />
+                                <NavItem icon="receipt" label="Pembelian" id="purchases" />
+                            </nav>
+                        </div>
+                    )}
+
+                    <main className="lg:ml-64 flex-1 p-6 lg:p-12 pb-32 min-h-screen italic uppercase leading-none">
+                        <div className="max-w-6xl mx-auto">
+                            {view === 'dashboard' && <DashboardView sales={sales} />}
+                            {view === 'sales' && <SalesPage user={user} sales={sales} products={products} ingredients={ingredients} recipes={recipes} settings={settings} />}
+                            {view === 'products' && <ProductsView user={user} products={products} ingredients={ingredients} recipes={recipes} />}
+                            {view === 'inventory' && <InventoryView user={user} ingredients={ingredients} />}
+                            {view === 'purchases' && <PurchasesView user={user} purchases={purchases} ingredients={ingredients} />}
+                        </div>
+                    </main>
+                </div>
+            );
+        }
+
         const root = ReactDOM.createRoot(document.getElementById('app'));
         root.render(<App />);
-
     </script>
 </body>
 </html>
