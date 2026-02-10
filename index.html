@@ -59,7 +59,7 @@ import {
   Area
 } from 'recharts';
 
-// --- KONFIGURASI FIREBASE ---
+// --- KONFIGURASI FIREBASE CLOUD (GITHUB READY) ---
 const firebaseConfig = {
   apiKey: "AIzaSyB8EE6iavqDKXJdmgLpOD6kMVYsskHu56w",
   authDomain: "kmy-bru-manager.firebaseapp.com",
@@ -73,7 +73,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
-const appId = "kmy-bru-prod-v1"; 
+const appId = "kmy-bru-production-v1"; // ID Aplikasi
 
 // --- TEMA & GAYA ---
 const THEME = {
@@ -100,11 +100,13 @@ const Modal = ({ isOpen, onClose, title, children }) => {
     <div className="fixed inset-0 z-[100] flex justify-center items-start overflow-y-auto bg-black/95 backdrop-blur-md p-4 py-10 lg:py-20 animate-in fade-in duration-300">
       <div className="fixed inset-0 -z-10" onClick={onClose} />
       <div className={`${THEME.card} relative w-full max-w-xl rounded-[2.5rem] shadow-2xl animate-in zoom-in-95 duration-300 my-auto overflow-hidden`}>
-        <div className="flex items-center justify-between p-6 lg:p-10 border-b border-[#1a1a1a] sticky top-0 bg-[#0c0c0c] z-10">
+        <div className="flex items-center justify-between p-6 lg:p-10 border-b border-[#1a1a1a] sticky top-0 bg-[#0c0c0c] z-10 rounded-t-[2.5rem]">
           <h3 className="text-xl font-black tracking-widest uppercase italic text-white leading-none">{title}</h3>
           <button onClick={onClose} className="p-3 hover:bg-white/10 rounded-full transition-all text-white/40 hover:text-white"><X size={24} /></button>
         </div>
-        <div className="p-6 lg:p-10 text-white">{children}</div>
+        <div className="p-6 lg:p-10 text-white">
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -117,6 +119,7 @@ export default function App() {
   const [view, setView] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
+  // States Data
   const [products, setProducts] = useState([]);
   const [ingredients, setIngredients] = useState([]);
   const [recipes, setRecipes] = useState([]);
@@ -124,29 +127,15 @@ export default function App() {
   const [purchases, setPurchases] = useState([]);
   const [settings, setSettings] = useState({ autoDeduct: true, watermark: true, logoUrl: null });
 
-  // Autentikasi (Pembetulan Rule 3 & Ralat Admin Restricted)
+  // Autentikasi (Resilient Auth Logic)
   useEffect(() => {
     let isMounted = true;
     const initAuth = async () => {
       try {
         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          try {
-            await signInWithCustomToken(auth, __initial_auth_token);
-          } catch (e) {
-            console.warn("Custom token gagal, mencuba log masuk sandaran...");
-            if (!auth.currentUser) await signInAnonymously(auth).catch(() => {});
-          }
-        } else if (!auth.currentUser) {
-          // Cubaan log masuk tanpa nama dikawal supaya ralat tidak menyekat UI
-          await signInAnonymously(auth).catch((err) => {
-            console.warn("Log masuk tanpa nama disekat oleh admin, sila gunakan borang manual.");
-          });
+          await signInWithCustomToken(auth, __initial_auth_token).catch(() => {});
         }
-      } catch (err) {
-        console.error("Ralat Autentikasi:", err);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
+      } catch (err) { console.error(err); }
     };
 
     initAuth();
@@ -157,13 +146,10 @@ export default function App() {
       }
     });
 
-    return () => {
-      isMounted = false;
-      unsubscribe();
-    };
+    return () => { isMounted = false; unsubscribe(); };
   }, []);
 
-  // Penyelarasan Data Real-time (Rule 1 & 2)
+  // Sync Data Real-time (Rule 1 & 2)
   useEffect(() => {
     if (!user) return;
     const base = ['artifacts', appId, 'users', user.uid];
@@ -181,7 +167,7 @@ export default function App() {
   if (loading) return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center text-white p-10">
       <div className="w-16 h-16 border-t-2 border-white rounded-full animate-spin mb-10 shadow-2xl shadow-white/10"></div>
-      <p className="font-black italic tracking-[0.8em] uppercase text-[10px] opacity-30 animate-pulse text-center">KMY BRU • MEMULAKAN SISTEM</p>
+      <p className="font-black italic tracking-[0.8em] uppercase text-[10px] opacity-30 animate-pulse text-center leading-loose">KMY BRU<br/>INITIALIZING CLOUD SESSION</p>
     </div>
   );
 
@@ -199,7 +185,7 @@ export default function App() {
 
   return (
     <div className={`min-h-screen w-full ${THEME.bg} text-white font-sans flex flex-col lg:flex-row overflow-x-hidden selection:bg-white selection:text-black`}>
-      {/* Latar Belakang Watermark */}
+      {/* Background Watermark */}
       {settings.watermark && settings.logoUrl && (
         <div className="fixed inset-0 pointer-events-none opacity-[0.03] flex items-center justify-center grayscale invert z-0 overflow-hidden">
           <img src={settings.logoUrl} className="w-[90vw] max-w-5xl transform rotate-[-15deg] scale-125" alt="" />
@@ -207,9 +193,9 @@ export default function App() {
       )}
 
       {/* Sidebar Desktop */}
-      <aside className="hidden lg:flex flex-col w-80 fixed h-full border-r border-[#1a1a1a] p-10 z-[60] bg-black">
+      <aside className="hidden lg:flex flex-col w-80 fixed h-full border-r border-[#1a1a1a] p-10 z-[60] bg-black shadow-2xl">
         <div className="mb-14 flex items-center space-x-4">
-          <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center rotate-3 shadow-2xl shadow-white/5">
+          <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center rotate-3 shadow-2xl shadow-white/5 transition-transform hover:rotate-0 duration-500">
             <Coffee className="text-black" size={28} />
           </div>
           <div>
@@ -232,20 +218,20 @@ export default function App() {
         </button>
       </aside>
 
-      {/* Header Mobile */}
+      {/* Mobile Top Navigation */}
       <header className="lg:hidden flex items-center justify-between p-6 border-b border-[#1a1a1a] sticky top-0 bg-black/95 backdrop-blur-xl z-[60] w-full">
         <div className="flex items-center space-x-4">
-          <Coffee className="text-white" size={24} />
-          <h1 className="font-black italic tracking-tighter text-xl text-white uppercase">KMY BRU</h1>
+          <div className="p-2 bg-white rounded-lg shadow-xl"><Coffee className="text-black" size={20} /></div>
+          <h1 className="font-black italic tracking-tighter text-xl text-white uppercase leading-none">KMY BRU</h1>
         </div>
-        <button onClick={() => setSidebarOpen(true)} className="p-3 bg-zinc-900 rounded-2xl text-white"><Menu size={24} /></button>
+        <button onClick={() => setSidebarOpen(true)} className="p-3 bg-zinc-900 rounded-2xl text-white shadow-inner"><Menu size={24} /></button>
       </header>
 
-      {/* Drawer Mobile */}
+      {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
-        <div className="lg:hidden fixed inset-0 bg-black z-[200] p-8 flex flex-col animate-in slide-in-from-right duration-300 overflow-y-auto text-white">
+        <div className="lg:hidden fixed inset-0 bg-black z-[200] p-8 flex flex-col animate-in slide-in-from-right duration-300 overflow-y-auto">
           <div className="flex justify-between items-center mb-12 flex-shrink-0 border-b border-zinc-900 pb-8">
-             <h1 className="text-2xl font-black italic tracking-tighter uppercase">Menu Utama</h1>
+             <h1 className="text-2xl font-black italic tracking-tighter text-white uppercase italic tracking-widest">Menu</h1>
              <button onClick={() => setSidebarOpen(false)} className="p-3 bg-zinc-900 rounded-2xl text-white"><X size={24} /></button>
           </div>
           <nav className="flex-1 space-y-4">
@@ -258,11 +244,11 @@ export default function App() {
             <NavItem icon={BarChart3} label="Analitik" id="reports" />
             <NavItem icon={SettingsIcon} label="Tetapan" id="settings" />
           </nav>
-          <button onClick={() => signOut(auth)} className="mt-12 p-8 border border-zinc-900 rounded-[2rem] text-zinc-500 font-black text-xs uppercase tracking-widest italic">Log Keluar Sistem</button>
+          <button onClick={() => signOut(auth)} className="mt-12 p-8 border border-zinc-900 rounded-[2rem] text-zinc-500 font-black text-xs uppercase tracking-widest italic tracking-tighter">Exit Management System</button>
         </div>
       )}
 
-      {/* Paparan Utama */}
+      {/* Main Content Area */}
       <main className="lg:ml-80 flex-1 p-6 lg:p-16 relative z-10 pb-40 min-h-screen">
         <div className="max-w-6xl mx-auto h-full">
           {view === 'dashboard' && <Dashboard sales={sales} />}
@@ -279,7 +265,7 @@ export default function App() {
   );
 }
 
-// --- KOMPONEN VIEW ---
+// --- SUB-COMPONENTS ---
 
 function Dashboard({ sales }) {
   const stats = useMemo(() => {
@@ -296,8 +282,8 @@ function Dashboard({ sales }) {
         <StatCard label="Total Revenue" value={formatRM(stats.revenue)} icon={Receipt} color="white" />
         <StatCard label="Orders Logged" value={stats.count} icon={ShoppingCart} color="zinc" />
       </div>
-      <div className={`${THEME.card} p-12 rounded-[3.5rem] h-[32rem] shadow-2xl group`}>
-          <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-600 mb-12 flex items-center gap-3 italic group-hover:text-white transition-colors uppercase tracking-widest leading-none">Aktiviti Jualan Mingguan</h3>
+      <div className={`${THEME.card} p-12 rounded-[3.5rem] h-[32rem] shadow-2xl group transition-all hover:border-white/10`}>
+          <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-600 mb-12 flex items-center gap-3 italic group-hover:text-white transition-colors uppercase tracking-widest leading-none">Jualan Terkini (Last 14 Records)</h3>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={sales.slice(-14)}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1a1a1a" />
@@ -321,6 +307,7 @@ const StatCard = ({ label, value, icon: Icon, color }) => (
 
 function SalesPage({ user, sales, products, ingredients, recipes, settings }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
   const saveSale = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -329,6 +316,7 @@ function SalesPage({ user, sales, products, ingredients, recipes, settings }) {
     const product = products.find(p => p.id === pId);
     const recipe = recipes.find(r => r.productId === pId);
     if (!product) return;
+    
     let cost = 0;
     if (recipe) recipe.ingredients.forEach(ri => {
       const ing = ingredients.find(i => i.id === ri.ingredientId);
@@ -350,18 +338,18 @@ function SalesPage({ user, sales, products, ingredients, recipes, settings }) {
 
   return (
     <div className="space-y-12 animate-in fade-in duration-700">
-      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-8">
-        <div><p className="text-zinc-600 uppercase tracking-[0.5em] text-[10px] font-black mb-3 italic opacity-40 italic">Commerce Control</p><h2 className="text-5xl font-black tracking-tighter uppercase leading-none italic">ORDER BARU</h2></div>
-        <button onClick={() => setIsModalOpen(true)} className="bg-white text-black px-12 py-5 rounded-[1.5rem] text-[10px] font-black flex items-center justify-center space-x-4 active:scale-95 shadow-2xl transition-all uppercase tracking-widest font-black"><Plus size={18} strokeWidth={3} /> <span>Daftar Order</span></button>
+      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-8 text-white">
+        <div><p className="text-zinc-600 uppercase tracking-[0.5em] text-[10px] font-black mb-3 italic opacity-40 italic uppercase">Daily Orders</p><h2 className="text-5xl font-black tracking-tighter uppercase leading-none italic">JUALAN HARIAN</h2></div>
+        <button onClick={() => setIsModalOpen(true)} className="bg-white text-black px-12 py-5 rounded-[1.5rem] text-[10px] font-black flex items-center justify-center space-x-4 active:scale-95 shadow-2xl transition-all uppercase tracking-widest font-black italic"><Plus size={18} strokeWidth={3} /> <span>New Order</span></button>
       </header>
       <div className={`${THEME.card} rounded-[3.5rem] overflow-hidden shadow-2xl`}>
-        <div className="overflow-x-auto text-white">
+        <div className="overflow-x-auto text-white custom-scrollbar">
           <table className="w-full text-left text-sm text-white">
             <thead>
               <tr className="border-b border-[#1f1f1f] text-zinc-600 uppercase text-[11px] tracking-[0.4em] font-black bg-zinc-900/50">
-                <th className="px-12 py-10">Menu / Masa</th>
-                <th className="px-12 py-10 text-center">Unit</th>
-                <th className="px-12 py-10 text-right font-black">Profit (RM)</th>
+                <th className="px-12 py-10">Menu / Waktu</th>
+                <th className="px-12 py-10 text-center">Bil. Unit</th>
+                <th className="px-12 py-10 text-right font-black">Keuntungan (RM)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#161616]">
@@ -372,24 +360,24 @@ function SalesPage({ user, sales, products, ingredients, recipes, settings }) {
                     <div className="text-[10px] text-zinc-700 font-bold uppercase tracking-widest italic">{s.timestamp?.toDate().toLocaleString()}</div>
                   </td>
                   <td className="px-12 py-12 text-center font-mono font-black text-3xl tracking-tighter group-hover:scale-110 transition-transform leading-none">{s.quantitySold}</td>
-                  <td className="px-12 py-12 text-right font-mono font-black text-3xl text-emerald-500 tracking-tighter leading-none">{formatRM(s.totalProfit)}</td>
+                  <td className="px-12 py-12 text-right font-mono font-black text-3xl text-emerald-500 tracking-tighter leading-none italic">{formatRM(s.totalProfit)}</td>
                 </tr>
               ))}
-              {sales.length === 0 && <tr><td colSpan="3" className="px-12 py-40 text-center text-zinc-800 font-black tracking-[0.5em] italic uppercase">Rekod Masih Kosong</td></tr>}
+              {sales.length === 0 && <tr><td colSpan="3" className="px-12 py-40 text-center text-zinc-800 font-black tracking-[0.5em] italic uppercase">Belum ada jualan hari ini</td></tr>}
             </tbody>
           </table>
         </div>
       </div>
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Daftar Order Baru">
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Daftar Order Harian">
         <form onSubmit={saveSale} className="space-y-12">
-          <div className="space-y-4 text-white"><label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-widest">Pilih Item Menu</label>
-          <select name="pId" required className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 text-sm font-black uppercase outline-none shadow-2xl text-white`}>
+          <div className="space-y-4 text-white"><label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-widest">Pilih Item Produk</label>
+          <select name="pId" required className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 text-sm font-black uppercase outline-none shadow-2xl text-white italic`}>
              <option value="" className="text-zinc-800">SILA PILIH PRODUK...</option>
              {products.map(p => <option key={p.id} value={p.id} className="text-zinc-800 font-bold">{p.name} ({formatRM(p.price)})</option>)}
           </select></div>
-          <div className="space-y-4 text-center text-white"><label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-widest block mb-4 italic">Kuantiti Jualan</label>
-          <input name="qty" type="number" defaultValue={1} min={1} required className={`w-full bg-transparent border-b-2 border-zinc-900 focus:border-white p-6 text-7xl font-black outline-none font-mono text-white text-center shadow-inner leading-none italic`} /></div>
-          <button type="submit" className="w-full bg-white text-black font-black py-8 rounded-[2rem] shadow-[0_20px_50px_rgba(255,255,255,0.1)] uppercase text-[11px] tracking-[0.5em] active:scale-95 transition-all font-black italic">Sahkan Transaksi</button>
+          <div className="space-y-4 text-center text-white"><label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-widest block mb-4 italic uppercase">Bilangan Unit Terjual</label>
+          <input name="qty" type="number" defaultValue={1} min={1} required className={`w-full bg-transparent border-b-2 border-zinc-900 focus:border-white p-6 text-7xl font-black outline-none font-mono text-white text-center shadow-inner leading-none italic uppercase`} /></div>
+          <button type="submit" className="w-full bg-white text-black font-black py-8 rounded-[2rem] shadow-[0_25px_60px_rgba(255,255,255,0.1)] uppercase text-[11px] tracking-[0.5em] active:scale-95 transition-all font-black italic">Sahkan Transaksi & Kira Untung</button>
         </form>
       </Modal>
     </div>
@@ -417,8 +405,8 @@ function ProductsPage({ user, products, ingredients, recipes }) {
   return (
     <div className="space-y-12 animate-in fade-in duration-700">
       <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-8">
-        <div><p className="text-zinc-600 uppercase tracking-[0.5em] text-[10px] font-black mb-3 italic opacity-40">Katalog</p><h2 className="text-5xl font-black tracking-tighter uppercase leading-none italic">MENU & RESIPI</h2></div>
-        <button onClick={() => { setEditingProduct(null); setIsModalOpen(true); }} className="bg-white text-black px-12 py-5 rounded-[1.5rem] text-[10px] font-black flex items-center justify-center space-x-4 shadow-2xl transition-all uppercase tracking-widest"><Plus size={18} /> <span>Tambah Menu</span></button>
+        <div><p className="text-zinc-600 uppercase tracking-[0.5em] text-[10px] font-black mb-3 italic opacity-40 italic uppercase">Product Portfolio</p><h2 className="text-5xl font-black tracking-tighter uppercase leading-none italic text-white uppercase">MENU & RESIPI</h2></div>
+        <button onClick={() => { setEditingProduct(null); setIsModalOpen(true); }} className="bg-white text-black px-12 py-5 rounded-[1.5rem] text-[10px] font-black flex items-center justify-center space-x-4 shadow-2xl transition-all uppercase tracking-widest italic font-black"><Plus size={18} /> <span>Tambah Menu</span></button>
       </header>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
         {products.map(p => (
@@ -431,7 +419,7 @@ function ProductsPage({ user, products, ingredients, recipes }) {
                   setActiveRecipe(r);
                   setIsRecipeModalOpen(true);
                 }} className="p-4 bg-zinc-900 hover:bg-white hover:text-black rounded-2xl transition-all shadow-xl"><BookOpen size={20} /></button>
-                <button onClick={async () => { if(confirm('Padam menu ini?')) await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'products', p.id)) }} className="p-4 bg-zinc-900 hover:bg-rose-500 hover:text-white rounded-2xl transition-all shadow-xl"><Trash2 size={20} /></button>
+                <button onClick={async () => { if(confirm('Padam menu ini secara kekal?')) await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'products', p.id)) }} className="p-4 bg-zinc-900 hover:bg-rose-500 hover:text-white rounded-2xl transition-all shadow-xl"><Trash2 size={20} /></button>
               </div>
             </div>
             <div>
@@ -441,22 +429,22 @@ function ProductsPage({ user, products, ingredients, recipes }) {
           </div>
         ))}
       </div>
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Formula Produk">
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Konfigurasi Menu">
         <form onSubmit={saveProduct} className="space-y-10 text-white">
-          <div className="space-y-3"><label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-widest">Nama Produk</label>
-          <input name="name" defaultValue={editingProduct?.name} required placeholder="CONTOH: KOPI LATTE" className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 text-sm font-black uppercase outline-none shadow-2xl text-white`} /></div>
+          <div className="space-y-3 text-white"><label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-widest">Nama Produk</label>
+          <input name="name" defaultValue={editingProduct?.name} required placeholder="CONTOH: KOPI LATTE" className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 text-sm font-black uppercase outline-none shadow-2xl text-white italic`} /></div>
           <div className="grid grid-cols-2 gap-8 text-white text-center">
-            <div className="space-y-3"><label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-widest text-center block">Volume (ml)</label>
+            <div className="space-y-3"><label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-widest text-center block leading-none italic uppercase">Volume (ml)</label>
             <input name="volume" type="number" defaultValue={editingProduct?.volume || 250} required className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 text-xl font-mono font-black outline-none text-center shadow-inner uppercase italic`} /></div>
-            <div className="space-y-3"><label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-widest text-center block">Harga (RM)</label>
+            <div className="space-y-3"><label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-widest text-center block leading-none italic uppercase">Harga (RM)</label>
             <input name="price" type="number" step="0.1" defaultValue={editingProduct?.price || 10} required className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 text-xl font-mono font-black outline-none text-center shadow-inner uppercase italic`} /></div>
           </div>
-          <button type="submit" className="w-full bg-white text-black font-black py-8 rounded-[2.5rem] shadow-2xl uppercase text-[11px] tracking-[0.5em] active:scale-95 transition-all italic leading-none font-black">Simpan Katalog</button>
+          <button type="submit" className="w-full bg-white text-black font-black py-8 rounded-[2.5rem] shadow-2xl uppercase text-[11px] tracking-[0.5em] active:scale-95 transition-all italic leading-none font-black">Simpan Katalog Baru</button>
         </form>
       </Modal>
       <Modal isOpen={isRecipeModalOpen} onClose={() => setIsRecipeModalOpen(false)} title="Penyelarasan Resipi">
         <div className="space-y-12">
-           <div className="space-y-4 text-white"><label className="text-[11px] font-black uppercase text-zinc-600 italic tracking-widest">Pilih Bahan Mentah</label>
+           <div className="space-y-4 text-white"><label className="text-[11px] font-black uppercase text-zinc-600 italic tracking-widest italic">Tambah Bahan Mentah</label>
               <select onChange={async (e) => {
                 const ingId = e.target.value; if(!ingId) return;
                 const ing = ingredients.find(i => i.id === ingId);
@@ -465,9 +453,9 @@ function ProductsPage({ user, products, ingredients, recipes }) {
                 const base = ['artifacts', appId, 'users', user.uid, 'recipes'];
                 if(activeRecipe.id) await updateDoc(doc(db, ...base, activeRecipe.id), updated);
                 else { const ref = await addDoc(collection(db, ...base), updated); setActiveRecipe({...updated, id: ref.id}); }
-              }} className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 text-xs font-black uppercase outline-none shadow-2xl text-white`}>
+              }} className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 text-xs font-black uppercase outline-none shadow-2xl text-white italic`}>
                  <option value="" className="text-zinc-800">TAMBAH DARI INVENTORI...</option>
-                 {ingredients.map(i => <option key={i.id} value={i.id} className="text-zinc-800 font-bold uppercase">{i.name} ({i.unit})</option>)}
+                 {ingredients.map(i => <option key={i.id} value={i.id} className="text-zinc-800 font-bold uppercase italic">{i.name} ({i.unit})</option>)}
               </select>
            </div>
            <div className="space-y-6 max-h-[40vh] overflow-y-auto pr-4 custom-scrollbar text-white">
@@ -489,14 +477,12 @@ function ProductsPage({ user, products, ingredients, recipes }) {
                 </div>
               ))}
            </div>
-           <button onClick={async () => { if (activeRecipe.id) await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'recipes', activeRecipe.id), activeRecipe); setIsRecipeModalOpen(false); }} className="w-full bg-white text-black font-black py-8 rounded-[2rem] uppercase text-[11px] tracking-[0.5em] shadow-2xl active:scale-95 transition-all leading-none italic font-black">Sahkan Formula Baru</button>
+           <button onClick={async () => { if (activeRecipe.id) await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'recipes', activeRecipe.id), activeRecipe); setIsRecipeModalOpen(false); }} className="w-full bg-white text-black font-black py-8 rounded-[2rem] uppercase text-[11px] tracking-[0.5em] shadow-2xl active:scale-95 transition-all leading-none italic font-black uppercase">Sahkan Formula Menu</button>
         </div>
       </Modal>
     </div>
   );
 }
-
-// --- STANDALONE UI (INVENTORY, PURCHASES, SCALER, REPORTS, SETTINGS) ---
 
 function InventoryPage({ user, ingredients }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -504,14 +490,14 @@ function InventoryPage({ user, ingredients }) {
   return (
     <div className="space-y-12 animate-in fade-in duration-700">
       <header className="flex justify-between items-end">
-        <div><p className="text-zinc-600 uppercase tracking-[0.5em] text-[10px] font-black mb-3 italic opacity-40 uppercase">Resources</p><h2 className="text-5xl font-black tracking-tighter uppercase italic leading-none text-white">INVENTORI</h2></div>
-        <button onClick={() => { setEditingIng(null); setIsModalOpen(true); }} className="bg-white text-black px-12 py-5 rounded-[1.5rem] text-[10px] font-black shadow-2xl uppercase tracking-widest"><Plus size={18} /> Bahan Baru</button>
+        <div><p className="text-zinc-600 uppercase tracking-[0.5em] text-[10px] font-black mb-3 italic opacity-40 uppercase">Resources Tracking</p><h2 className="text-5xl font-black tracking-tighter uppercase leading-none text-white italic">INVENTORI</h2></div>
+        <button onClick={() => { setEditingIng(null); setIsModalOpen(true); }} className="bg-white text-black px-10 py-5 rounded-[1.5rem] text-[10px] font-black shadow-2xl uppercase tracking-widest font-black italic"><Plus size={18} strokeWidth={3} /> Tambah Bahan</button>
       </header>
-      <div className={`${THEME.card} rounded-[3.5rem] overflow-hidden shadow-2xl`}><div className="overflow-x-auto text-white"><table className="w-full text-left text-sm"><thead><tr className="border-b border-[#1f1f1f] text-zinc-600 uppercase text-[11px] tracking-[0.4em] bg-zinc-900/50 font-black"><th className="px-12 py-10">Bahan Utama</th><th className="px-12 py-10 text-center">Baki Stok</th><th className="px-12 py-10 text-right font-black tracking-widest">Kos Purata</th></tr></thead><tbody className="divide-y divide-[#161616]">
+      <div className={`${THEME.card} rounded-[3.5rem] overflow-hidden shadow-2xl`}><div className="overflow-x-auto text-white"><table className="w-full text-left text-sm"><thead><tr className="border-b border-[#1f1f1f] text-zinc-600 uppercase text-[11px] tracking-[0.4em] bg-zinc-900/50 font-black italic"><th className="px-12 py-10">Bahan Utama</th><th className="px-12 py-10 text-center">Baki Stok</th><th className="px-12 py-10 text-right font-black tracking-widest uppercase italic">Kos Purata Unit</th></tr></thead><tbody className="divide-y divide-[#161616]">
         {ingredients.map(i => (
-          <tr key={i.id} className="hover:bg-white/[0.01] transition-colors group text-white"><td className="px-12 py-12"><div className="font-black text-2xl uppercase tracking-tighter mb-2 italic leading-none">{i.name}</div><div className="text-[10px] text-zinc-700 font-bold uppercase tracking-widest leading-none">{i.category}</div></td><td className="px-12 py-12 text-center font-mono font-black text-3xl tracking-widest leading-none italic">{formatUnit(i.currentStock, i.unit)}</td><td className="px-12 py-12 text-right font-mono font-black text-xl text-zinc-600 italic tracking-tighter leading-none">{formatRM(i.avgUnitCostRM)}/u</td></tr>
+          <tr key={i.id} className="hover:bg-white/[0.01] transition-colors group text-white"><td className="px-12 py-12"><div className="font-black text-2xl uppercase tracking-tighter mb-2 italic leading-none">{i.name}</div><div className="text-[10px] text-zinc-700 font-bold uppercase tracking-widest leading-none italic">{i.category}</div></td><td className="px-12 py-12 text-center font-mono font-black text-3xl tracking-widest leading-none italic">{formatUnit(i.currentStock, i.unit)}</td><td className="px-12 py-12 text-right font-mono font-black text-xl text-zinc-600 italic tracking-tighter leading-none">{formatRM(i.avgUnitCostRM)}/u</td></tr>
         ))}</tbody></table></div></div>
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Pangkalan Bahan Mentah"><form onSubmit={async (e) => { e.preventDefault(); const f = new FormData(e.target); const d = { name: f.get('n').toUpperCase(), category: f.get('c'), unit: f.get('u'), currentStock: parseFloat(f.get('s')) || 0, avgUnitCostRM: parseFloat(f.get('k')) || 0 }; const base = ['artifacts', appId, 'users', user.uid, 'ingredients']; if (editingIng) await updateDoc(doc(db, ...base, editingIng.id), d); else await addDoc(collection(db, ...base), d); setIsModalOpen(false); }} className="space-y-12 text-white"><input name="n" defaultValue={editingIng?.name} required placeholder="NAMA BAHAN" className={`w-full ${THEME.input} rounded-[2rem] px-10 py-7 font-black uppercase text-sm shadow-2xl outline-none italic`} /><div className="grid grid-cols-2 gap-8 text-white"><select name="c" defaultValue={editingIng?.category || 'raw'} className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 font-black text-xs outline-none text-white font-black italic`}><option value="raw" className="text-zinc-800">RAW MATERIAL</option><option value="packaging" className="text-zinc-800">PACKAGING</option></select><select name="u" defaultValue={editingIng?.unit || 'ml'} className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 font-black text-xs outline-none text-white font-black italic`}><option value="ml" className="text-zinc-800">ML</option><option value="g" className="text-zinc-800">G</option><option value="pcs" className="text-zinc-800">PCS</option></select></div><div className="grid grid-cols-2 gap-8 text-white"><input name="s" type="number" defaultValue={editingIng?.currentStock || 0} step="0.01" placeholder="STOK" className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 font-mono font-black text-xl text-center italic outline-none`} /><input name="k" type="number" defaultValue={editingIng?.avgUnitCostRM || 0} step="0.0001" placeholder="KOS" className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 font-mono font-black text-xl text-center italic outline-none`} /></div><button type="submit" className="w-full bg-white text-black font-black py-8 rounded-[2rem] uppercase tracking-[0.5em] text-[11px] shadow-2xl transition-all font-black italic">Simpan Data Baru</button></form></Modal>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Data Pangkalan Bahan"><form onSubmit={async (e) => { e.preventDefault(); const f = new FormData(e.target); const d = { name: f.get('n').toUpperCase(), category: f.get('c'), unit: f.get('u'), currentStock: parseFloat(f.get('s')) || 0, avgUnitCostRM: parseFloat(f.get('k')) || 0 }; const base = ['artifacts', appId, 'users', user.uid, 'ingredients']; if (editingIng) await updateDoc(doc(db, ...base, editingIng.id), d); else await addDoc(collection(db, ...base), d); setIsModalOpen(false); }} className="space-y-12 text-white"><input name="n" defaultValue={editingIng?.name} required placeholder="NAMA BAHAN" className={`w-full ${THEME.input} rounded-[2rem] px-10 py-7 font-black uppercase text-sm shadow-2xl outline-none italic`} /><div className="grid grid-cols-2 gap-8 text-white"><select name="c" defaultValue={editingIng?.category || 'raw'} className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 font-black text-xs outline-none text-white font-black italic shadow-inner uppercase tracking-widest`}><option value="raw" className="text-zinc-800">RAW MATERIAL</option><option value="packaging" className="text-zinc-800">PACKAGING</option></select><select name="u" defaultValue={editingIng?.unit || 'ml'} className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 font-black text-xs outline-none text-white font-black italic shadow-inner uppercase tracking-widest`}><option value="ml" className="text-zinc-800">ML</option><option value="g" className="text-zinc-800">G</option><option value="pcs" className="text-zinc-800">PCS</option></select></div><div className="grid grid-cols-2 gap-8 text-white"><input name="s" type="number" defaultValue={editingIng?.currentStock || 0} step="0.01" placeholder="STOK" className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 font-mono font-black text-xl text-center italic outline-none shadow-inner`} /><input name="k" type="number" defaultValue={editingIng?.avgUnitCostRM || 0} step="0.0001" placeholder="KOS" className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 font-mono font-black text-xl text-center italic outline-none shadow-inner`} /></div><button type="submit" className="w-full bg-white text-black font-black py-8 rounded-[2rem] uppercase tracking-[0.5em] text-[11px] shadow-2xl transition-all font-black italic leading-none">Simpan Maklumat Bahan</button></form></Modal>
     </div>
   );
 }
@@ -521,14 +507,14 @@ function PurchasesPage({ user, purchases, ingredients }) {
   return (
     <div className="space-y-12 animate-in fade-in duration-700">
       <header className="flex justify-between items-end">
-        <div><p className="text-zinc-600 uppercase tracking-[0.5em] text-[10px] font-black mb-3 italic opacity-40 uppercase">Capital</p><h2 className="text-5xl font-black tracking-tighter uppercase leading-none italic text-white">PEMBELIAN</h2></div>
-        <button onClick={() => setIsModalOpen(true)} className="bg-white text-black px-12 py-5 rounded-[1.5rem] text-[10px] font-black shadow-2xl uppercase tracking-widest"><Plus size={18} /> Log Belian</button>
+        <div><p className="text-zinc-600 uppercase tracking-[0.5em] text-[10px] font-black mb-3 italic opacity-40 uppercase">Capital Injection</p><h2 className="text-5xl font-black tracking-tighter uppercase leading-none italic text-white uppercase">PEMBELIAN</h2></div>
+        <button onClick={() => setIsModalOpen(true)} className="bg-white text-black px-12 py-5 rounded-[1.5rem] text-[10px] font-black shadow-2xl uppercase tracking-widest italic font-black"><Plus size={18} strokeWidth={3} /> Log Belian</button>
       </header>
-      <div className={`${THEME.card} rounded-[3.5rem] overflow-hidden shadow-2xl`}><div className="overflow-x-auto text-white"><table className="w-full text-left text-sm text-white"><thead><tr className="border-b border-[#1f1f1f] text-zinc-600 uppercase text-[11px] bg-zinc-900/50 font-black tracking-[0.4em]"><th className="px-12 py-10">Tarikh Rekod</th><th className="px-12 py-10">Item Belian</th><th className="px-12 py-10 text-right">Kos Total</th></tr></thead><tbody className="divide-y divide-[#161616]">
+      <div className={`${THEME.card} rounded-[3.5rem] overflow-hidden text-white shadow-2xl`}><div className="overflow-x-auto text-white"><table className="w-full text-left text-sm text-white"><thead><tr className="border-b border-[#1f1f1f] text-zinc-600 uppercase text-[11px] bg-zinc-900/50 font-black tracking-[0.4em] italic"><th className="px-12 py-10">Tarikh</th><th className="px-12 py-10">Item Belian</th><th className="px-12 py-10 text-right uppercase font-black">Kos Total</th></tr></thead><tbody className="divide-y divide-[#161616]">
         {purchases.sort((a,b) => b.timestamp - a.timestamp).map(p => (
-          <tr key={p.id} className="hover:bg-white/[0.01] transition-colors group"><td className="px-12 py-12 font-mono text-zinc-700 text-[11px] font-black italic uppercase tracking-widest leading-none">{p.timestamp?.toDate().toLocaleDateString()}</td><td className="px-12 py-12 font-black text-2xl uppercase tracking-tighter leading-none italic text-white">{p.ingName} <span className="text-[10px] text-zinc-800 font-bold ml-4 uppercase opacity-50 not-italic">({formatUnit(p.qty, p.unit)})</span></td><td className="px-12 py-12 text-right font-mono font-black text-3xl text-white tracking-tighter leading-none italic">{formatRM(p.cost)}</td></tr>
+          <tr key={p.id} className="hover:bg-white/[0.01] transition-colors group"><td className="px-12 py-12 font-mono text-zinc-700 text-[10px] font-black italic uppercase tracking-widest leading-none">{p.timestamp?.toDate().toLocaleDateString()}</td><td className="px-12 py-12 font-black text-2xl uppercase tracking-tighter leading-none italic text-white">{p.ingName} <span className="text-[10px] text-zinc-700 font-bold ml-4 uppercase opacity-50 not-italic">({formatUnit(p.qty, p.unit)})</span></td><td className="px-12 py-12 text-right font-mono font-black text-3xl text-white tracking-tighter leading-none italic">{formatRM(p.cost)}</td></tr>
         ))}</tbody></table></div></div>
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Log Belian Baru"><form onSubmit={async (e) => { e.preventDefault(); const f = new FormData(e.target); const iId = f.get('id'); const q = parseFloat(f.get('q')); const c = parseFloat(f.get('c')); const ing = ingredients.find(i => i.id === iId); if (!ing) return; const nS = ing.currentStock + q; const nA = (ing.currentStock * ing.avgUnitCostRM + c) / nS; const base = ['artifacts', appId, 'users', user.uid]; await addDoc(collection(db, ...base, 'purchases'), { ingName: ing.name, qty: q, cost: c, unit: ing.unit, timestamp: Timestamp.now() }); await updateDoc(doc(db, ...base, 'ingredients', iId), { currentStock: increment(q), avgUnitCostRM: nA }); setIsModalOpen(false); }} className="space-y-12 text-white"><div className="space-y-4"><label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-widest">Pilih Bahan Mentah</label><select name="id" required className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 text-xs font-black uppercase outline-none shadow-2xl text-white italic`}>{ingredients.map(i => <option key={i.id} value={i.id} className="text-zinc-800">{i.name} ({i.unit})</option>)}</select></div><div className="grid grid-cols-2 gap-8 text-white"><div className="space-y-4 text-center"><label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-widest block leading-none italic">Kuantiti Beli</label><input name="q" type="number" step="0.01" placeholder="0.00" className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 text-2xl font-mono font-black text-center shadow-inner outline-none italic`} /></div><div className="space-y-4 text-center"><label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-widest block leading-none italic">Harga Total (RM)</label><input name="c" type="number" step="0.01" placeholder="0.00" className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 text-2xl font-mono font-black text-center shadow-inner outline-none italic`} /></div></div><button type="submit" className="w-full bg-white text-black font-black py-8 rounded-[2rem] uppercase tracking-[0.5em] text-[11px] shadow-2xl active:scale-95 transition-all font-black italic">Sahkan Transaksi</button></form></Modal>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Log Pembelian Stok"><form onSubmit={async (e) => { e.preventDefault(); const f = new FormData(e.target); const iId = f.get('id'); const q = parseFloat(f.get('q')); const c = parseFloat(f.get('c')); const ing = ingredients.find(i => i.id === iId); if (!ing) return; const nS = ing.currentStock + q; const nA = (ing.currentStock * ing.avgUnitCostRM + c) / nS; const base = ['artifacts', appId, 'users', user.uid]; await addDoc(collection(db, ...base, 'purchases'), { ingName: ing.name, qty: q, cost: c, unit: ing.unit, timestamp: Timestamp.now() }); await updateDoc(doc(db, ...base, 'ingredients', iId), { currentStock: increment(q), avgUnitCostRM: nA }); setIsModalOpen(false); }} className="space-y-12 text-white"><div className="space-y-4"><label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-widest italic uppercase">Pilih Bahan Dari Inventori</label><select name="id" required className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 text-xs font-black uppercase outline-none shadow-2xl text-white italic tracking-widest`}>{ingredients.map(i => <option key={i.id} value={i.id} className="text-zinc-800 font-bold uppercase italic">{i.name} ({i.unit})</option>)}</select></div><div className="grid grid-cols-2 gap-8 text-white"><div className="space-y-4 text-center"><label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-widest block leading-none italic uppercase">Kuantiti Beli</label><input name="q" type="number" step="0.01" placeholder="0.00" className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 text-2xl font-mono font-black text-center shadow-inner outline-none italic text-white uppercase leading-none`} /></div><div className="space-y-4 text-center"><label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-widest block leading-none italic uppercase">Kos Total (RM)</label><input name="c" type="number" step="0.01" placeholder="0.00" className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 text-2xl font-mono font-black text-center shadow-inner outline-none italic text-white uppercase leading-none`} /></div></div><button type="submit" className="w-full bg-white text-black font-black py-8 rounded-[2rem] uppercase tracking-[0.5em] text-[11px] shadow-2xl active:scale-95 transition-all font-black italic uppercase leading-none">Daftar Transaksi Pembelian</button></form></Modal>
     </div>
   );
 }
@@ -554,28 +540,28 @@ function RecipePage({ user, recipes, products, ingredients }) {
   return (
     <div className="space-y-12 animate-in fade-in duration-700 text-white">
       <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-8">
-        <div><p className="text-zinc-600 uppercase tracking-[0.5em] text-[10px] font-black mb-3 italic opacity-40 uppercase">Tools</p><h2 className="text-5xl font-black tracking-tighter uppercase leading-none italic text-white">SCALER</h2></div>
-        <button onClick={() => setIsSetupOpen(true)} className="bg-white text-black px-12 py-5 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest shadow-2xl active:scale-95 transition-all italic font-black"><Calculator size={18} /> Setup Saiz Baru</button>
+        <div><p className="text-zinc-600 uppercase tracking-[0.5em] text-[10px] font-black mb-3 italic opacity-40 uppercase italic tracking-widest leading-none">Engineering</p><h2 className="text-5xl font-black tracking-tighter uppercase leading-none italic text-white uppercase italic">SCALER</h2></div>
+        <button onClick={() => setIsSetupOpen(true)} className="bg-white text-black px-12 py-5 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest shadow-2xl active:scale-95 transition-all italic font-black uppercase tracking-widest"><Calculator size={18} strokeWidth={3} className="inline mr-2" /> Setup Saiz Baru</button>
       </header>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 text-white">
         <div className={`${THEME.card} p-12 rounded-[3.5rem] space-y-12 shadow-2xl text-white`}>
           <div className="flex gap-3 p-2 bg-black rounded-3xl border border-zinc-900 shadow-inner text-white">
-            <button onClick={() => setScaleMode('bottles')} className={`flex-1 py-5 text-[10px] font-black rounded-2xl transition-all ${scaleMode === 'bottles' ? 'bg-zinc-900 text-white shadow-2xl' : 'text-zinc-800'}`}>BATCH UNIT</button>
-            <button onClick={() => setScaleMode('volume')} className={`flex-1 py-5 text-[10px] font-black rounded-2xl transition-all ${scaleMode === 'volume' ? 'bg-zinc-900 text-white shadow-2xl' : 'text-zinc-800'}`}>TARGET ML</button>
+            <button onClick={() => setScaleMode('bottles')} className={`flex-1 py-5 text-[10px] font-black rounded-2xl transition-all ${scaleMode === 'bottles' ? 'bg-zinc-900 text-white shadow-2xl shadow-white/5' : 'text-zinc-800'}`}>BATCH UNIT</button>
+            <button onClick={() => setScaleMode('volume')} className={`flex-1 py-5 text-[10px] font-black rounded-2xl transition-all ${scaleMode === 'volume' ? 'bg-zinc-900 text-white shadow-2xl shadow-white/5' : 'text-zinc-800'}`}>TARGET ML</button>
           </div>
           <div className="space-y-6 text-center">
-             <label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-[0.5em] leading-none block italic">Banyak Batch?</label>
-             <input type="number" value={scaleInput} onChange={e => setScaleInput(e.target.value)} className="w-full bg-transparent border-b-4 border-zinc-900 focus:border-white p-8 text-8xl font-black outline-none font-mono text-white text-center transition-all leading-none italic shadow-inner" />
+             <label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-[0.5em] leading-none block italic uppercase tracking-widest">Banyak Mana?</label>
+             <input type="number" value={scaleInput} onChange={e => setScaleInput(e.target.value)} className="w-full bg-transparent border-b-4 border-zinc-900 focus:border-white p-8 text-8xl font-black outline-none font-mono text-white text-center transition-all leading-none italic shadow-inner tracking-tighter uppercase" />
           </div>
         </div>
         <div className="lg:col-span-2 text-white">
            <div className={`${THEME.card} rounded-[3.5rem] overflow-hidden shadow-2xl`}>
             <table className="w-full text-left text-sm text-white">
-              <thead><tr className="border-b border-[#1f1f1f] text-zinc-600 uppercase text-[11px] tracking-[0.5em] font-black bg-zinc-900/50 uppercase italic"><th className="px-12 py-10">Bahan Utama</th><th className="px-12 py-10 text-right">Sukatan</th><th className="px-12 py-10 text-right">Status Stok</th></tr></thead>
+              <thead><tr className="border-b border-[#1f1f1f] text-zinc-600 uppercase text-[11px] tracking-[0.5em] font-black bg-zinc-900/50 uppercase italic tracking-widest leading-none"><th className="px-12 py-10">Bahan Mentah Utama</th><th className="px-12 py-10 text-right">Sukatan Batch</th><th className="px-12 py-10 text-right">Status Semasa</th></tr></thead>
               <tbody className="divide-y divide-[#161616]">
                 {calculated.map(item => (
-                  <tr key={item.id} className="hover:bg-white/[0.02] transition-colors group"><td className="px-12 py-12 font-black text-2xl uppercase tracking-tighter italic leading-none">{item.name}</td><td className="px-12 py-12 text-right font-mono font-black text-3xl tracking-tighter group-hover:scale-110 transition-transform leading-none text-white">{formatUnit(item.needed, item.unit)}</td><td className="px-12 py-12 text-right">
-                      {item.shortage > 0 ? <span className="text-rose-500 font-black text-[10px] bg-rose-500/10 px-8 py-3 rounded-[2rem] border border-rose-500/20 uppercase tracking-[0.4em] shadow-lg animate-pulse leading-none italic font-black">Kurang {formatUnit(item.shortage, item.unit)}</span> : <span className="text-emerald-500 font-black text-[11px] uppercase tracking-[0.5em] opacity-40 italic leading-none font-black italic uppercase">Cukup</span>}
+                  <tr key={item.id} className="hover:bg-white/[0.02] transition-colors group"><td className="px-12 py-12 font-black text-2xl uppercase tracking-tighter italic leading-none text-zinc-200 group-hover:text-white transition-colors">{item.name}</td><td className="px-12 py-12 text-right font-mono font-black text-3xl tracking-tighter group-hover:scale-110 transition-transform leading-none text-white italic">{formatUnit(item.needed, item.unit)}</td><td className="px-12 py-12 text-right">
+                      {item.shortage > 0 ? <span className="text-rose-500 font-black text-[10px] bg-rose-500/10 px-8 py-3 rounded-[2rem] border border-rose-500/20 uppercase tracking-[0.4em] shadow-lg animate-pulse leading-none italic font-black uppercase tracking-widest">Kurang {formatUnit(item.shortage, item.unit)}</span> : <span className="text-emerald-500 font-black text-[11px] uppercase tracking-[0.5em] opacity-40 italic leading-none font-black italic uppercase tracking-widest">Cukup</span>}
                     </td></tr>
                 ))}
               </tbody>
@@ -583,15 +569,15 @@ function RecipePage({ user, recipes, products, ingredients }) {
           </div>
         </div>
       </div>
-      <Modal isOpen={isSetupOpen} onClose={() => { setIsSetupOpen(false); setSuggestion(null); }} title="Setup Saiz Baru (Formula)">
+      <Modal isOpen={isSetupOpen} onClose={() => { setIsSetupOpen(false); setSuggestion(null); }} title="Setup Saiz Baru (Logic)">
          <div className="space-y-12">
-            <div className="space-y-4 text-white"><label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-widest italic">Pilih Resipi Asal</label>
-            <select value={selectedBaseId} onChange={e => setSelectedBaseId(e.target.value)} className={`w-full ${THEME.input} rounded-[2.5rem] px-10 py-7 text-sm font-black uppercase outline-none shadow-2xl text-white italic`}>
-               <option value="" className="text-zinc-800 font-bold">PILIH MENU...</option>
-               {products.map(p => <option key={p.id} value={p.id} className="text-zinc-800 font-bold uppercase">{p.name} ({p.volume}ml)</option>)}
+            <div className="space-y-4 text-white"><label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-widest italic uppercase tracking-widest">Rujukan Menu Asal</label>
+            <select value={selectedBaseId} onChange={e => setSelectedBaseId(e.target.value)} className={`w-full ${THEME.input} rounded-[2.5rem] px-10 py-7 text-sm font-black uppercase outline-none shadow-2xl text-white italic font-black tracking-widest`}>
+               <option value="" className="text-zinc-800 font-bold uppercase italic">SILA PILIH MENU...</option>
+               {products.map(p => <option key={p.id} value={p.id} className="text-zinc-800 font-bold uppercase italic tracking-widest">{p.name} ({p.volume}ml)</option>)}
             </select></div>
-            <div className="space-y-4 text-white text-center"><label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-widest block leading-none italic uppercase">Saiz Baru (ml)</label>
-            <input type="number" value={targetVol} onChange={e => setTargetVol(e.target.value)} className={`w-full bg-transparent border-b-2 border-zinc-900 focus:border-white p-8 text-7xl font-black font-mono outline-none text-center shadow-inner uppercase italic text-white leading-none`} placeholder="0" /></div>
+            <div className="space-y-4 text-white text-center"><label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-widest block leading-none italic uppercase tracking-widest">Isipadu Baru (ml)</label>
+            <input type="number" value={targetVol} onChange={e => setTargetVol(e.target.value)} className={`w-full bg-transparent border-b-2 border-zinc-900 focus:border-white p-8 text-7xl font-black font-mono outline-none text-center shadow-inner uppercase italic text-white leading-none italic tracking-tighter`} placeholder="0" /></div>
             <button onClick={() => {
               const baseP = products.find(p => p.id === selectedBaseId);
               const baseR = recipes.find(r => r.productId === selectedBaseId);
@@ -599,15 +585,15 @@ function RecipePage({ user, recipes, products, ingredients }) {
                 const ratio = parseFloat(targetVol) / baseP.volume;
                 setSuggestion(baseR.ingredients.map(ri => ({ ...ri, suggested: (ri.quantityPerBottle * ratio).toFixed(2) })));
               }
-            }} className="w-full bg-white text-black font-black py-8 rounded-[2.5rem] uppercase text-[11px] tracking-[0.6em] shadow-[0_20px_60px_rgba(255,255,255,0.15)] active:scale-95 transition-all italic leading-none font-black">Kira Formula Baharu</button>
+            }} className="w-full bg-white text-black font-black py-8 rounded-[2.5rem] uppercase text-[11px] tracking-[0.6em] shadow-[0_20px_60px_rgba(255,255,255,0.15)] active:scale-95 transition-all italic leading-none font-black uppercase tracking-widest">Jana Formula Sukatan</button>
             {suggestion && (
               <div className="pt-12 border-t border-zinc-900 space-y-8 animate-in slide-in-from-top-4 duration-700 text-white font-black">
-                 <h4 className="text-[11px] font-black uppercase tracking-[0.5em] text-emerald-500 italic tracking-widest leading-none italic uppercase">Hasil Kiraan Sukatan Baharu:</h4>
+                 <h4 className="text-[11px] font-black uppercase tracking-[0.5em] text-emerald-500 italic tracking-widest leading-none italic uppercase tracking-widest leading-loose">Sukatan Cadangan (Nisbah {targetVol}ml):</h4>
                  <div className="grid gap-4">
                     {suggestion.map(s => (
                       <div key={s.ingredientId} className="flex justify-between items-center bg-zinc-900/40 p-8 rounded-[3rem] border border-zinc-800 shadow-inner group hover:border-white transition-colors">
-                        <span className="text-[12px] font-black uppercase tracking-[0.4em] text-zinc-500 group-hover:text-white transition-colors italic uppercase">{s.name}</span>
-                        <span className="font-mono font-black text-3xl text-white tracking-tighter leading-none italic">{s.suggested}{s.unit}</span>
+                        <span className="text-[12px] font-black uppercase tracking-[0.4em] text-zinc-500 group-hover:text-white transition-colors italic uppercase tracking-widest">{s.name}</span>
+                        <span className="font-mono font-black text-3xl text-white tracking-tighter leading-none italic italic">{s.suggested}{s.unit}</span>
                       </div>
                     ))}
                  </div>
@@ -632,9 +618,9 @@ function ReportsPage({ sales }) {
   }, [sales]);
   return (
     <div className="space-y-12 animate-in fade-in duration-1000 text-white">
-      <header><p className="text-zinc-600 uppercase tracking-[0.5em] text-[10px] font-black mb-3 italic opacity-40 tracking-widest italic leading-none uppercase">Analysis</p><h2 className="text-6xl font-black tracking-tighter uppercase text-white leading-none italic italic">LAPORAN</h2></header>
+      <header><p className="text-zinc-600 uppercase tracking-[0.5em] text-[10px] font-black mb-3 italic opacity-40 tracking-widest italic leading-none uppercase">Analysis</p><h2 className="text-6xl font-black tracking-tighter uppercase text-white leading-none italic italic uppercase">LAPORAN</h2></header>
       <div className={`${THEME.card} p-12 lg:p-16 rounded-[4rem] h-[42rem] shadow-2xl relative overflow-hidden group text-white`}>
-         <div className="absolute top-16 left-16 z-10 font-black uppercase tracking-widest uppercase italic text-zinc-700 tracking-[0.5em] group-hover:text-white transition-colors">Financial Trends (2 Weeks)</div>
+         <div className="absolute top-16 left-16 z-10 font-black uppercase tracking-widest uppercase italic text-zinc-700 tracking-[0.5em] group-hover:text-white transition-colors uppercase leading-none">Financial Performance</div>
          <ResponsiveContainer width="100%" height="100%"><AreaChart data={data} margin={{ top: 140, right: 30, left: -10, bottom: 0 }}><defs><linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#fff" stopOpacity={0.15}/><stop offset="95%" stopColor="#fff" stopOpacity={0}/></linearGradient></defs><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1a1a1a" /><XAxis dataKey="date" stroke="#333" fontSize={11} axisLine={false} tickLine={false} fontStyle="italic" dy={20} /><YAxis stroke="#333" fontSize={11} axisLine={false} tickLine={false} fontStyle="italic" /><Tooltip contentStyle={{ backgroundColor: '#000', border: '1px solid #333', borderRadius: '40px', fontWeight: 'black', textTransform: 'uppercase', fontSize: '12px', padding: '30px' }} /><Area type="monotone" dataKey="revenue" stroke="#333" fillOpacity={1} fill="url(#colorRev)" strokeWidth={3} /><Area type="monotone" dataKey="profit" stroke="#fff" fillOpacity={0} strokeWidth={6} dot={{fill: '#fff', r: 8, strokeWidth: 0}} /></AreaChart></ResponsiveContainer>
       </div>
     </div>
@@ -645,13 +631,13 @@ function SettingsPage({ user, settings }) {
   const update = async (k, v) => await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'config'), { ...settings, [k]: v }, { merge: true });
   return (
     <div className="max-w-3xl space-y-12 animate-in fade-in duration-1000 text-white">
-      <header><p className="text-zinc-600 uppercase tracking-[0.5em] text-[10px] font-black mb-3 italic text-white/40 tracking-widest uppercase italic">Preferences</p><h2 className="text-6xl font-black tracking-tighter uppercase text-white leading-none italic">TETAPAN</h2></header>
+      <header><p className="text-zinc-600 uppercase tracking-[0.5em] text-[10px] font-black mb-3 italic text-white/40 tracking-widest uppercase italic leading-none">System Control</p><h2 className="text-6xl font-black tracking-tighter uppercase text-white leading-none italic italic uppercase">TETAPAN</h2></header>
       <div className={`${THEME.card} p-16 rounded-[4rem] space-y-16 text-white shadow-2xl`}>
-        <div className="flex items-center justify-between gap-12 text-white leading-none group"><div className="space-y-3"><h4 className="font-black text-3xl italic uppercase tracking-tighter text-white leading-none group-hover:tracking-normal transition-all italic">Auto-Deduct Stok</h4><p className="text-[11px] text-zinc-600 font-bold uppercase tracking-[0.3em] italic leading-relaxed tracking-widest max-w-sm italic">Penolakan stok bahan mentah secara automatik setiap kali order disahkan.</p></div><button onClick={() => update('autoDeduct', !settings.autoDeduct)} className={`w-20 h-10 rounded-full transition-all relative ${settings.autoDeduct ? 'bg-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.5)]' : 'bg-zinc-900 shadow-inner'}`}><div className={`absolute top-1.5 w-7 h-7 rounded-full bg-white shadow-2xl transition-all ${settings.autoDeduct ? 'left-11' : 'left-2'}`} /></button></div>
+        <div className="flex items-center justify-between gap-12 text-white leading-none group"><div className="space-y-3"><h4 className="font-black text-3xl italic uppercase tracking-tighter text-white leading-none group-hover:tracking-normal transition-all italic leading-none uppercase tracking-widest">Auto-Deduct Stok</h4><p className="text-[11px] text-zinc-600 font-bold uppercase tracking-[0.3em] italic leading-relaxed tracking-widest max-w-sm italic uppercase tracking-widest opacity-60">Penolakan stok bahan mentah secara automatik setiap kali order disahkan.</p></div><button onClick={() => update('autoDeduct', !settings.autoDeduct)} className={`w-20 h-10 rounded-full transition-all relative ${settings.autoDeduct ? 'bg-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.5)]' : 'bg-zinc-900 shadow-inner'}`}><div className={`absolute top-1.5 w-7 h-7 rounded-full bg-white shadow-2xl transition-all ${settings.autoDeduct ? 'left-11' : 'left-2'}`} /></button></div>
         <div className="h-px bg-zinc-900/50" />
-        <div className="flex items-center justify-between gap-12 text-white leading-none group"><div className="space-y-3"><h4 className="font-black text-3xl italic uppercase tracking-tighter text-white leading-none group-hover:tracking-normal transition-all italic">Watermark Latar</h4><p className="text-[11px] text-zinc-600 font-bold uppercase tracking-[0.3em] italic leading-relaxed tracking-widest max-w-sm italic">Paparan logo perniagaan secara artistik di latar belakang sistem.</p></div><button onClick={() => update('watermark', !settings.watermark)} className={`w-20 h-10 rounded-full transition-all relative ${settings.watermark ? 'bg-white shadow-[0_0_30px_rgba(255,255,255,0.4)]' : 'bg-zinc-900 shadow-inner'}`}><div className={`absolute top-1.5 w-7 h-7 rounded-full bg-black shadow-2xl transition-all ${settings.watermark ? 'left-11' : 'left-2'}`} /></button></div>
+        <div className="flex items-center justify-between gap-12 text-white leading-none group"><div className="space-y-3"><h4 className="font-black text-3xl italic uppercase tracking-tighter text-white leading-none group-hover:tracking-normal transition-all italic leading-none uppercase tracking-widest">Watermark Latar</h4><p className="text-[11px] text-zinc-600 font-bold uppercase tracking-[0.3em] italic leading-relaxed tracking-widest max-w-sm italic uppercase tracking-widest opacity-60">Paparan logo perniagaan secara artistik di latar belakang sistem.</p></div><button onClick={() => update('watermark', !settings.watermark)} className={`w-20 h-10 rounded-full transition-all relative ${settings.watermark ? 'bg-white shadow-[0_0_30px_rgba(255,255,255,0.4)]' : 'bg-zinc-900 shadow-inner'}`}><div className={`absolute top-1.5 w-7 h-7 rounded-full bg-black shadow-2xl transition-all ${settings.watermark ? 'left-11' : 'left-2'}`} /></button></div>
       </div>
-      <div className="pt-32 text-center opacity-30 space-y-8 text-white"><p className="text-[11px] font-black uppercase tracking-[1.5em] italic italic italic leading-none tracking-widest animate-pulse italic uppercase">KMY BRU • CLOUD PRODUCTION V5.0</p><div className="flex items-center justify-center gap-4 text-white uppercase italic"><CheckCircle2 size={12} className="text-emerald-500" /><p className="font-mono text-[9px] tracking-[0.5em] uppercase opacity-40 italic">{user.uid}</p></div></div>
+      <div className="pt-32 text-center opacity-30 space-y-8 text-white"><p className="text-[11px] font-black uppercase tracking-[1.5em] italic italic italic leading-none tracking-widest animate-pulse italic uppercase tracking-widest leading-none">KMY BRU • PRO PRODUCTION V5.0 GITHUB EDITION</p><div className="flex items-center justify-center gap-4 text-white uppercase italic tracking-widest font-black"><CheckCircle2 size={12} className="text-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" /><p className="font-mono text-[9px] tracking-[0.5em] uppercase opacity-40 italic">{user.uid}</p></div></div>
     </div>
   );
 }
@@ -671,7 +657,7 @@ function AuthPage() {
       else await createUserWithEmailAndPassword(auth, email, password);
     } catch (err) { 
       let msg = err.message.toUpperCase();
-      if(msg.includes('ADMIN-RESTRICTED-OPERATION')) msg = 'LOG MASUK TANPA NAMA DISEKAT. SILA DAFTAR AKAUN MANUAL.';
+      if(msg.includes('ADMIN-RESTRICTED-OPERATION')) msg = 'LOGIN ANONIM DISEKAT. SILA DAFTAR AKAUN MANUAL.';
       setError(msg); 
     }
   };
@@ -681,19 +667,19 @@ function AuthPage() {
       <div className="w-full max-w-sm space-y-20 animate-in fade-in zoom-in-95 duration-1000 relative z-10">
         <div className="text-center space-y-10 group">
            <div className="w-28 h-28 bg-white rounded-[2.5rem] mx-auto flex items-center justify-center rotate-6 shadow-[0_20px_80px_rgba(255,255,255,0.3)] transition-all group-hover:rotate-0 group-hover:scale-110 duration-700 shadow-2xl"><Coffee className="text-black" size={56} /></div>
-           <div><h1 className="text-7xl font-black italic tracking-tighter text-white uppercase italic leading-none hover:tracking-normal transition-all cursor-default">KMY BRU</h1><p className="text-zinc-800 text-[10px] font-black uppercase tracking-[0.8em] mt-8 italic opacity-40 leading-none italic uppercase">System Control</p></div>
+           <div><h1 className="text-7xl font-black italic tracking-tighter text-white uppercase italic leading-none hover:tracking-normal transition-all cursor-default uppercase italic tracking-widest">KMY BRU</h1><p className="text-zinc-800 text-[10px] font-black uppercase tracking-[0.8em] mt-8 italic opacity-40 leading-none italic uppercase tracking-[0.8em]">Master Console</p></div>
         </div>
         <form onSubmit={handleAuth} className="space-y-8">
-          <input type="email" placeholder="E-MEL OPERATOR" className={`w-full ${THEME.input} rounded-[2rem] px-10 py-6 text-[11px] font-black uppercase tracking-[0.4em] outline-none shadow-2xl text-center focus:scale-105 transition-transform uppercase italic`} value={email} onChange={e => setEmail(e.target.value)} required />
-          <input type="password" placeholder="PASSWORD" className={`w-full ${THEME.input} rounded-[2rem] px-10 py-6 text-[11px] font-black tracking-[0.4em] outline-none shadow-2xl text-center focus:scale-105 transition-transform uppercase italic`} value={password} onChange={e => setPassword(e.target.value)} required />
-          {error && <p className="text-rose-500 text-[10px] font-black text-center uppercase tracking-[0.3em] animate-bounce italic leading-relaxed">{error}</p>}
-          <button type="submit" className="w-full bg-white text-black font-black py-7 rounded-[2rem] shadow-[0_25px_60px_rgba(255,255,255,0.25)] hover:bg-zinc-200 transition-all uppercase tracking-[0.5em] text-[11px] active:scale-95 shadow-2xl leading-none italic font-black">
+          <input type="email" placeholder="E-MEL OPERATOR" className={`w-full ${THEME.input} rounded-[2rem] px-10 py-6 text-[11px] font-black uppercase tracking-[0.4em] outline-none shadow-2xl text-center focus:scale-105 transition-transform uppercase italic tracking-widest font-black leading-none italic`} value={email} onChange={e => setEmail(e.target.value)} required />
+          <input type="password" placeholder="PASSWORD" className={`w-full ${THEME.input} rounded-[2rem] px-10 py-6 text-[11px] font-black tracking-[0.4em] outline-none shadow-2xl text-center focus:scale-105 transition-transform uppercase italic tracking-widest font-black leading-none italic`} value={password} onChange={e => setPassword(e.target.value)} required />
+          {error && <p className="text-rose-500 text-[10px] font-black text-center uppercase tracking-[0.3em] animate-bounce italic leading-relaxed uppercase tracking-widest">{error}</p>}
+          <button type="submit" className="w-full bg-white text-black font-black py-7 rounded-[2rem] shadow-[0_25px_60px_rgba(255,255,255,0.25)] hover:bg-zinc-200 transition-all uppercase tracking-[0.5em] text-[11px] active:scale-95 shadow-2xl leading-none italic font-black uppercase tracking-widest">
              {isLogin ? 'ENTER CLOUD' : 'INITIALIZE'}
           </button>
         </form>
-        <p className="text-center text-zinc-800 text-[10px] uppercase tracking-[0.4em] font-black italic leading-none uppercase italic">
+        <p className="text-center text-zinc-800 text-[10px] uppercase tracking-[0.4em] font-black italic leading-none uppercase italic tracking-widest leading-loose">
            {isLogin ? "No Access? " : "Registered? "}
-           <button onClick={() => setIsLogin(!isLogin)} className="text-white hover:underline transition-all ml-4 uppercase italic tracking-widest underline-offset-[10px] font-black decoration-zinc-800 hover:decoration-white italic uppercase">
+           <button onClick={() => setIsLogin(!isLogin)} className="text-white hover:underline transition-all ml-4 uppercase italic tracking-widest underline-offset-[10px] font-black decoration-zinc-800 hover:decoration-white italic uppercase tracking-widest font-black">
               {isLogin ? 'Request' : 'Login'}
            </button>
         </p>
