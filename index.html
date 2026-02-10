@@ -1,0 +1,703 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { initializeApp } from 'firebase/app';
+import { 
+  getAuth, 
+  signInWithCustomToken, 
+  signInAnonymously, 
+  onAuthStateChanged,
+  signOut,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword
+} from 'firebase/auth';
+import { 
+  getFirestore, 
+  collection, 
+  doc, 
+  setDoc, 
+  addDoc, 
+  updateDoc, 
+  onSnapshot,
+  Timestamp,
+  increment,
+  deleteDoc,
+  query,
+  where
+} from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { 
+  LayoutDashboard, 
+  Package, 
+  ShoppingCart, 
+  Receipt, 
+  Scale, 
+  BarChart3, 
+  Settings as SettingsIcon,
+  Plus,
+  ChevronRight,
+  TrendingUp,
+  LogOut,
+  X,
+  Menu,
+  Coffee,
+  Calculator,
+  BookOpen,
+  Trash2,
+  Save,
+  AlertTriangle,
+  History,
+  CheckCircle2
+} from 'lucide-react';
+import {
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  AreaChart,
+  Area
+} from 'recharts';
+
+// --- KONFIGURASI FIREBASE ---
+const firebaseConfig = {
+  apiKey: "AIzaSyB8EE6iavqDKXJdmgLpOD6kMVYsskHu56w",
+  authDomain: "kmy-bru-manager.firebaseapp.com",
+  projectId: "kmy-bru-manager",
+  storageBucket: "kmy-bru-manager.firebasestorage.app",
+  messagingSenderId: "176073299379",
+  appId: "1:176073299379:web:6c5eeee23008d8f09b27c6"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const storage = getStorage(app);
+const appId = "kmy-bru-prod-v1"; 
+
+// --- TEMA & GAYA ---
+const THEME = {
+  bg: 'bg-[#050505]',
+  card: 'bg-[#0c0c0c] border border-[#1a1a1a]',
+  input: 'bg-[#000] border-[#222] focus:border-white focus:ring-1 focus:ring-white text-white placeholder:text-zinc-800',
+  accent: 'bg-white text-black',
+  emerald: 'text-emerald-500',
+  rose: 'text-rose-500'
+};
+
+// --- UTILITI ---
+const formatRM = (val) => new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(val || 0);
+const formatUnit = (qty, unit) => {
+  if (unit === 'ml' && qty >= 1000) return `${(qty / 1000).toFixed(2)}L`;
+  if (unit === 'g' && qty >= 1000) return `${(qty / 1000).toFixed(2)}kg`;
+  return `${qty}${unit}`;
+};
+
+// --- KOMPONEN MODAL ---
+const Modal = ({ isOpen, onClose, title, children }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[100] flex justify-center items-start overflow-y-auto bg-black/95 backdrop-blur-md p-4 py-10 lg:py-20 animate-in fade-in duration-300">
+      <div className="fixed inset-0 -z-10" onClick={onClose} />
+      <div className={`${THEME.card} relative w-full max-w-xl rounded-[2.5rem] shadow-2xl animate-in zoom-in-95 duration-300 my-auto overflow-hidden`}>
+        <div className="flex items-center justify-between p-6 lg:p-10 border-b border-[#1a1a1a] sticky top-0 bg-[#0c0c0c] z-10">
+          <h3 className="text-xl font-black tracking-widest uppercase italic text-white leading-none">{title}</h3>
+          <button onClick={onClose} className="p-3 hover:bg-white/10 rounded-full transition-all text-white/40 hover:text-white"><X size={24} /></button>
+        </div>
+        <div className="p-6 lg:p-10 text-white">{children}</div>
+      </div>
+    </div>
+  );
+};
+
+// --- APLIKASI UTAMA ---
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [view, setView] = useState('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  const [products, setProducts] = useState([]);
+  const [ingredients, setIngredients] = useState([]);
+  const [recipes, setRecipes] = useState([]);
+  const [sales, setSales] = useState([]);
+  const [purchases, setPurchases] = useState([]);
+  const [settings, setSettings] = useState({ autoDeduct: true, watermark: true, logoUrl: null });
+
+  // Autentikasi (Pembetulan Rule 3 & Ralat Admin Restricted)
+  useEffect(() => {
+    let isMounted = true;
+    const initAuth = async () => {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          try {
+            await signInWithCustomToken(auth, __initial_auth_token);
+          } catch (e) {
+            console.warn("Custom token gagal, mencuba log masuk sandaran...");
+            if (!auth.currentUser) await signInAnonymously(auth).catch(() => {});
+          }
+        } else if (!auth.currentUser) {
+          // Cubaan log masuk tanpa nama dikawal supaya ralat tidak menyekat UI
+          await signInAnonymously(auth).catch((err) => {
+            console.warn("Log masuk tanpa nama disekat oleh admin, sila gunakan borang manual.");
+          });
+        }
+      } catch (err) {
+        console.error("Ralat Autentikasi:", err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    initAuth();
+    const unsubscribe = onAuthStateChanged(auth, (u) => { 
+      if (isMounted) {
+        setUser(u); 
+        setLoading(false); 
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
+
+  // Penyelarasan Data Real-time (Rule 1 & 2)
+  useEffect(() => {
+    if (!user) return;
+    const base = ['artifacts', appId, 'users', user.uid];
+    const unsub = [
+      onSnapshot(collection(db, ...base, 'products'), s => setProducts(s.docs.map(d => ({id: d.id, ...d.data()})))),
+      onSnapshot(collection(db, ...base, 'ingredients'), s => setIngredients(s.docs.map(d => ({id: d.id, ...d.data()})))),
+      onSnapshot(collection(db, ...base, 'recipes'), s => setRecipes(s.docs.map(d => ({id: d.id, ...d.data()})))),
+      onSnapshot(collection(db, ...base, 'sales'), s => setSales(s.docs.map(d => ({id: d.id, ...d.data()})))),
+      onSnapshot(collection(db, ...base, 'purchases'), s => setPurchases(s.docs.map(d => ({id: d.id, ...d.data()})))),
+      onSnapshot(doc(db, ...base, 'settings', 'config'), s => s.exists() && setSettings(s.data()))
+    ];
+    return () => unsub.forEach(f => f());
+  }, [user]);
+
+  if (loading) return (
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center text-white p-10">
+      <div className="w-16 h-16 border-t-2 border-white rounded-full animate-spin mb-10 shadow-2xl shadow-white/10"></div>
+      <p className="font-black italic tracking-[0.8em] uppercase text-[10px] opacity-30 animate-pulse text-center">KMY BRU • MEMULAKAN SISTEM</p>
+    </div>
+  );
+
+  if (!user) return <AuthPage />;
+
+  const NavItem = ({ icon: Icon, label, id }) => (
+    <button 
+      onClick={() => { setView(id); setSidebarOpen(false); }}
+      className={`flex items-center space-x-4 px-6 py-4 rounded-2xl transition-all w-full text-left ${view === id ? 'bg-white text-black font-black shadow-2xl scale-[1.03]' : 'text-zinc-600 hover:text-white hover:bg-zinc-900'}`}
+    >
+      <Icon size={18} strokeWidth={view === id ? 3 : 2} />
+      <span className="text-[10px] tracking-[0.3em] uppercase font-bold">{label}</span>
+    </button>
+  );
+
+  return (
+    <div className={`min-h-screen w-full ${THEME.bg} text-white font-sans flex flex-col lg:flex-row overflow-x-hidden selection:bg-white selection:text-black`}>
+      {/* Latar Belakang Watermark */}
+      {settings.watermark && settings.logoUrl && (
+        <div className="fixed inset-0 pointer-events-none opacity-[0.03] flex items-center justify-center grayscale invert z-0 overflow-hidden">
+          <img src={settings.logoUrl} className="w-[90vw] max-w-5xl transform rotate-[-15deg] scale-125" alt="" />
+        </div>
+      )}
+
+      {/* Sidebar Desktop */}
+      <aside className="hidden lg:flex flex-col w-80 fixed h-full border-r border-[#1a1a1a] p-10 z-[60] bg-black">
+        <div className="mb-14 flex items-center space-x-4">
+          <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center rotate-3 shadow-2xl shadow-white/5">
+            <Coffee className="text-black" size={28} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black italic tracking-tighter leading-none uppercase">KMY BRU</h1>
+            <span className="text-[9px] uppercase tracking-[0.4em] text-zinc-600 font-bold">MANAGEMENT</span>
+          </div>
+        </div>
+        <nav className="flex-1 space-y-3">
+          <NavItem icon={LayoutDashboard} label="Dashboard" id="dashboard" />
+          <NavItem icon={ShoppingCart} label="Order Baru" id="sales" />
+          <NavItem icon={BookOpen} label="Menu & Resipi" id="products" />
+          <NavItem icon={Package} label="Inventori" id="inventory" />
+          <NavItem icon={Receipt} label="Pembelian" id="purchases" />
+          <NavItem icon={Scale} label="Scaler" id="recipes" />
+          <NavItem icon={BarChart3} label="Analitik" id="reports" />
+          <NavItem icon={SettingsIcon} label="Tetapan" id="settings" />
+        </nav>
+        <button onClick={() => signOut(auth)} className="mt-10 flex items-center space-x-3 p-5 text-zinc-700 hover:text-red-500 transition-colors border-t border-zinc-900 font-black uppercase text-[10px] tracking-widest">
+          <LogOut size={16} /> <span>Sign Out</span>
+        </button>
+      </aside>
+
+      {/* Header Mobile */}
+      <header className="lg:hidden flex items-center justify-between p-6 border-b border-[#1a1a1a] sticky top-0 bg-black/95 backdrop-blur-xl z-[60] w-full">
+        <div className="flex items-center space-x-4">
+          <Coffee className="text-white" size={24} />
+          <h1 className="font-black italic tracking-tighter text-xl text-white uppercase">KMY BRU</h1>
+        </div>
+        <button onClick={() => setSidebarOpen(true)} className="p-3 bg-zinc-900 rounded-2xl text-white"><Menu size={24} /></button>
+      </header>
+
+      {/* Drawer Mobile */}
+      {sidebarOpen && (
+        <div className="lg:hidden fixed inset-0 bg-black z-[200] p-8 flex flex-col animate-in slide-in-from-right duration-300 overflow-y-auto text-white">
+          <div className="flex justify-between items-center mb-12 flex-shrink-0 border-b border-zinc-900 pb-8">
+             <h1 className="text-2xl font-black italic tracking-tighter uppercase">Menu Utama</h1>
+             <button onClick={() => setSidebarOpen(false)} className="p-3 bg-zinc-900 rounded-2xl text-white"><X size={24} /></button>
+          </div>
+          <nav className="flex-1 space-y-4">
+            <NavItem icon={LayoutDashboard} label="Dashboard" id="dashboard" />
+            <NavItem icon={ShoppingCart} label="Order Baru" id="sales" />
+            <NavItem icon={BookOpen} label="Menu & Resipi" id="products" />
+            <NavItem icon={Package} label="Inventori" id="inventory" />
+            <NavItem icon={Receipt} label="Pembelian" id="purchases" />
+            <NavItem icon={Scale} label="Scaler" id="recipes" />
+            <NavItem icon={BarChart3} label="Analitik" id="reports" />
+            <NavItem icon={SettingsIcon} label="Tetapan" id="settings" />
+          </nav>
+          <button onClick={() => signOut(auth)} className="mt-12 p-8 border border-zinc-900 rounded-[2rem] text-zinc-500 font-black text-xs uppercase tracking-widest italic">Log Keluar Sistem</button>
+        </div>
+      )}
+
+      {/* Paparan Utama */}
+      <main className="lg:ml-80 flex-1 p-6 lg:p-16 relative z-10 pb-40 min-h-screen">
+        <div className="max-w-6xl mx-auto h-full">
+          {view === 'dashboard' && <Dashboard sales={sales} />}
+          {view === 'sales' && <SalesPage user={user} sales={sales} products={products} ingredients={ingredients} recipes={recipes} settings={settings} />}
+          {view === 'products' && <ProductsPage user={user} products={products} ingredients={ingredients} recipes={recipes} />}
+          {view === 'inventory' && <InventoryPage user={user} ingredients={ingredients} />}
+          {view === 'purchases' && <PurchasesPage user={user} purchases={purchases} ingredients={ingredients} />}
+          {view === 'recipes' && <RecipePage user={user} recipes={recipes} products={products} ingredients={ingredients} />}
+          {view === 'reports' && <ReportsPage sales={sales} />}
+          {view === 'settings' && <SettingsPage user={user} settings={settings} />}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+// --- KOMPONEN VIEW ---
+
+function Dashboard({ sales }) {
+  const stats = useMemo(() => {
+    const profit = sales.reduce((acc, s) => acc + (s.totalProfit || 0), 0);
+    const revenue = sales.reduce((acc, s) => acc + (s.totalPrice || 0), 0);
+    return { profit, revenue, count: sales.length };
+  }, [sales]);
+
+  return (
+    <div className="space-y-12 animate-in fade-in duration-1000 text-white">
+      <header><p className="text-zinc-600 uppercase tracking-[0.5em] text-[10px] font-black mb-4 italic opacity-50">Operational Summary</p><h2 className="text-6xl font-black tracking-tighter uppercase italic leading-none">OVERVIEW</h2></header>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+        <StatCard label="Clean Profit" value={formatRM(stats.profit)} icon={TrendingUp} color="emerald" />
+        <StatCard label="Total Revenue" value={formatRM(stats.revenue)} icon={Receipt} color="white" />
+        <StatCard label="Orders Logged" value={stats.count} icon={ShoppingCart} color="zinc" />
+      </div>
+      <div className={`${THEME.card} p-12 rounded-[3.5rem] h-[32rem] shadow-2xl group`}>
+          <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-600 mb-12 flex items-center gap-3 italic group-hover:text-white transition-colors uppercase tracking-widest leading-none">Aktiviti Jualan Mingguan</h3>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={sales.slice(-14)}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1a1a1a" />
+              <XAxis dataKey="timestamp" hide />
+              <Tooltip cursor={{fill: '#111'}} contentStyle={{ backgroundColor: '#000', border: '1px solid #222', borderRadius: '30px', padding: '20px' }} />
+              <Bar dataKey="totalPrice" fill="#fff" radius={[10, 10, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+const StatCard = ({ label, value, icon: Icon, color }) => (
+  <div className={`${THEME.card} p-12 rounded-[3rem] relative overflow-hidden group hover:scale-[1.03] transition-all shadow-2xl`}>
+    <Icon className="absolute top-10 right-10 text-zinc-900 opacity-20 group-hover:opacity-40 transition-opacity" size={72} />
+    <p className="text-zinc-600 text-[10px] font-black uppercase tracking-[0.4em] mb-6 italic tracking-widest">{label}</p>
+    <h4 className={`text-4xl font-black tracking-tighter ${color === 'emerald' ? 'text-emerald-500' : 'text-white'}`}>{value}</h4>
+  </div>
+);
+
+function SalesPage({ user, sales, products, ingredients, recipes, settings }) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const saveSale = async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const pId = formData.get('pId');
+    const qty = parseInt(formData.get('qty')) || 0;
+    const product = products.find(p => p.id === pId);
+    const recipe = recipes.find(r => r.productId === pId);
+    if (!product) return;
+    let cost = 0;
+    if (recipe) recipe.ingredients.forEach(ri => {
+      const ing = ingredients.find(i => i.id === ri.ingredientId);
+      if (ing) cost += (ri.quantityPerBottle * (ing.avgUnitCostRM || 0));
+    });
+    const revenue = qty * product.price;
+    const totalCost = qty * cost;
+    const data = { productName: product.name, quantitySold: qty, totalPrice: revenue, totalCost, totalProfit: revenue - totalCost, timestamp: Timestamp.now() };
+    try {
+      await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'sales'), data);
+      if (settings.autoDeduct && recipe) {
+        for (const ri of recipe.ingredients) {
+          await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'ingredients', ri.ingredientId), { currentStock: increment(-(ri.quantityPerBottle * qty)) });
+        }
+      }
+      setIsModalOpen(false);
+    } catch (err) { console.error(err); }
+  };
+
+  return (
+    <div className="space-y-12 animate-in fade-in duration-700">
+      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-8">
+        <div><p className="text-zinc-600 uppercase tracking-[0.5em] text-[10px] font-black mb-3 italic opacity-40 italic">Commerce Control</p><h2 className="text-5xl font-black tracking-tighter uppercase leading-none italic">ORDER BARU</h2></div>
+        <button onClick={() => setIsModalOpen(true)} className="bg-white text-black px-12 py-5 rounded-[1.5rem] text-[10px] font-black flex items-center justify-center space-x-4 active:scale-95 shadow-2xl transition-all uppercase tracking-widest font-black"><Plus size={18} strokeWidth={3} /> <span>Daftar Order</span></button>
+      </header>
+      <div className={`${THEME.card} rounded-[3.5rem] overflow-hidden shadow-2xl`}>
+        <div className="overflow-x-auto text-white">
+          <table className="w-full text-left text-sm text-white">
+            <thead>
+              <tr className="border-b border-[#1f1f1f] text-zinc-600 uppercase text-[11px] tracking-[0.4em] font-black bg-zinc-900/50">
+                <th className="px-12 py-10">Menu / Masa</th>
+                <th className="px-12 py-10 text-center">Unit</th>
+                <th className="px-12 py-10 text-right font-black">Profit (RM)</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#161616]">
+              {sales.sort((a,b) => b.timestamp - a.timestamp).map(s => (
+                <tr key={s.id} className="hover:bg-white/[0.02] transition-colors group">
+                  <td className="px-12 py-12">
+                    <div className="font-black text-2xl uppercase tracking-tighter mb-2 leading-none italic">{s.productName}</div>
+                    <div className="text-[10px] text-zinc-700 font-bold uppercase tracking-widest italic">{s.timestamp?.toDate().toLocaleString()}</div>
+                  </td>
+                  <td className="px-12 py-12 text-center font-mono font-black text-3xl tracking-tighter group-hover:scale-110 transition-transform leading-none">{s.quantitySold}</td>
+                  <td className="px-12 py-12 text-right font-mono font-black text-3xl text-emerald-500 tracking-tighter leading-none">{formatRM(s.totalProfit)}</td>
+                </tr>
+              ))}
+              {sales.length === 0 && <tr><td colSpan="3" className="px-12 py-40 text-center text-zinc-800 font-black tracking-[0.5em] italic uppercase">Rekod Masih Kosong</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Daftar Order Baru">
+        <form onSubmit={saveSale} className="space-y-12">
+          <div className="space-y-4 text-white"><label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-widest">Pilih Item Menu</label>
+          <select name="pId" required className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 text-sm font-black uppercase outline-none shadow-2xl text-white`}>
+             <option value="" className="text-zinc-800">SILA PILIH PRODUK...</option>
+             {products.map(p => <option key={p.id} value={p.id} className="text-zinc-800 font-bold">{p.name} ({formatRM(p.price)})</option>)}
+          </select></div>
+          <div className="space-y-4 text-center text-white"><label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-widest block mb-4 italic">Kuantiti Jualan</label>
+          <input name="qty" type="number" defaultValue={1} min={1} required className={`w-full bg-transparent border-b-2 border-zinc-900 focus:border-white p-6 text-7xl font-black outline-none font-mono text-white text-center shadow-inner leading-none italic`} /></div>
+          <button type="submit" className="w-full bg-white text-black font-black py-8 rounded-[2rem] shadow-[0_20px_50px_rgba(255,255,255,0.1)] uppercase text-[11px] tracking-[0.5em] active:scale-95 transition-all font-black italic">Sahkan Transaksi</button>
+        </form>
+      </Modal>
+    </div>
+  );
+}
+
+function ProductsPage({ user, products, ingredients, recipes }) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isRecipeModalOpen, setIsRecipeModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [activeRecipe, setActiveRecipe] = useState(null);
+
+  const saveProduct = async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = { name: formData.get('name').toUpperCase(), volume: parseFloat(formData.get('volume')), price: parseFloat(formData.get('price')), active: true };
+    try {
+      const base = ['artifacts', appId, 'users', user.uid, 'products'];
+      if (editingProduct) await updateDoc(doc(db, ...base, editingProduct.id), data);
+      else await addDoc(collection(db, ...base), data);
+      setIsModalOpen(false);
+    } catch (err) { console.error(err); }
+  };
+
+  return (
+    <div className="space-y-12 animate-in fade-in duration-700">
+      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-8">
+        <div><p className="text-zinc-600 uppercase tracking-[0.5em] text-[10px] font-black mb-3 italic opacity-40">Katalog</p><h2 className="text-5xl font-black tracking-tighter uppercase leading-none italic">MENU & RESIPI</h2></div>
+        <button onClick={() => { setEditingProduct(null); setIsModalOpen(true); }} className="bg-white text-black px-12 py-5 rounded-[1.5rem] text-[10px] font-black flex items-center justify-center space-x-4 shadow-2xl transition-all uppercase tracking-widest"><Plus size={18} /> <span>Tambah Menu</span></button>
+      </header>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
+        {products.map(p => (
+          <div key={p.id} className={`${THEME.card} p-12 rounded-[3.5rem] space-y-10 hover:border-white transition-all shadow-2xl group relative text-white`}>
+            <div className="flex justify-between items-center">
+              <div className="p-5 bg-zinc-900 rounded-3xl shadow-inner group-hover:bg-white group-hover:text-black transition-all rotate-3"><Coffee size={28} /></div>
+              <div className="flex gap-3">
+                <button onClick={() => { 
+                  const r = recipes.find(r => r.productId === p.id) || { productId: p.id, ingredients: [] };
+                  setActiveRecipe(r);
+                  setIsRecipeModalOpen(true);
+                }} className="p-4 bg-zinc-900 hover:bg-white hover:text-black rounded-2xl transition-all shadow-xl"><BookOpen size={20} /></button>
+                <button onClick={async () => { if(confirm('Padam menu ini?')) await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'products', p.id)) }} className="p-4 bg-zinc-900 hover:bg-rose-500 hover:text-white rounded-2xl transition-all shadow-xl"><Trash2 size={20} /></button>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-black text-2xl tracking-tighter uppercase mb-2 italic leading-tight">{p.name}</h4>
+              <p className="text-[11px] text-zinc-600 font-bold tracking-[0.3em] uppercase">{p.volume}ml • {formatRM(p.price)}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Formula Produk">
+        <form onSubmit={saveProduct} className="space-y-10 text-white">
+          <div className="space-y-3"><label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-widest">Nama Produk</label>
+          <input name="name" defaultValue={editingProduct?.name} required placeholder="CONTOH: KOPI LATTE" className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 text-sm font-black uppercase outline-none shadow-2xl text-white`} /></div>
+          <div className="grid grid-cols-2 gap-8 text-white text-center">
+            <div className="space-y-3"><label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-widest text-center block">Volume (ml)</label>
+            <input name="volume" type="number" defaultValue={editingProduct?.volume || 250} required className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 text-xl font-mono font-black outline-none text-center shadow-inner uppercase italic`} /></div>
+            <div className="space-y-3"><label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-widest text-center block">Harga (RM)</label>
+            <input name="price" type="number" step="0.1" defaultValue={editingProduct?.price || 10} required className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 text-xl font-mono font-black outline-none text-center shadow-inner uppercase italic`} /></div>
+          </div>
+          <button type="submit" className="w-full bg-white text-black font-black py-8 rounded-[2.5rem] shadow-2xl uppercase text-[11px] tracking-[0.5em] active:scale-95 transition-all italic leading-none font-black">Simpan Katalog</button>
+        </form>
+      </Modal>
+      <Modal isOpen={isRecipeModalOpen} onClose={() => setIsRecipeModalOpen(false)} title="Penyelarasan Resipi">
+        <div className="space-y-12">
+           <div className="space-y-4 text-white"><label className="text-[11px] font-black uppercase text-zinc-600 italic tracking-widest">Pilih Bahan Mentah</label>
+              <select onChange={async (e) => {
+                const ingId = e.target.value; if(!ingId) return;
+                const ing = ingredients.find(i => i.id === ingId);
+                const updated = { ...activeRecipe, ingredients: [...activeRecipe.ingredients, { ingredientId: ingId, name: ing.name, quantityPerBottle: 0, unit: ing.unit }] };
+                setActiveRecipe(updated);
+                const base = ['artifacts', appId, 'users', user.uid, 'recipes'];
+                if(activeRecipe.id) await updateDoc(doc(db, ...base, activeRecipe.id), updated);
+                else { const ref = await addDoc(collection(db, ...base), updated); setActiveRecipe({...updated, id: ref.id}); }
+              }} className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 text-xs font-black uppercase outline-none shadow-2xl text-white`}>
+                 <option value="" className="text-zinc-800">TAMBAH DARI INVENTORI...</option>
+                 {ingredients.map(i => <option key={i.id} value={i.id} className="text-zinc-800 font-bold uppercase">{i.name} ({i.unit})</option>)}
+              </select>
+           </div>
+           <div className="space-y-6 max-h-[40vh] overflow-y-auto pr-4 custom-scrollbar text-white">
+              {activeRecipe?.ingredients.map(ri => (
+                <div key={ri.ingredientId} className="flex items-center gap-8 bg-zinc-900/40 p-8 rounded-[3rem] border border-zinc-800 transition-all hover:border-white shadow-inner text-white group">
+                   <div className="flex-1">
+                      <p className="text-[11px] font-black uppercase tracking-[0.4em] mb-4 italic leading-none">{ri.name}</p>
+                      <div className="flex items-center gap-4 text-white">
+                         <input type="number" value={ri.quantityPerBottle} step="0.1" 
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value) || 0;
+                              setActiveRecipe({ ...activeRecipe, ingredients: activeRecipe.ingredients.map(i => i.ingredientId === ri.ingredientId ? { ...i, quantityPerBottle: val } : i) });
+                            }}
+                            className="w-32 bg-black border border-zinc-800 rounded-2xl px-5 py-4 text-lg font-mono font-black text-white outline-none focus:border-white shadow-2xl text-center italic" />
+                         <span className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">{ri.unit} / UNIT</span>
+                      </div>
+                   </div>
+                   <button onClick={() => setActiveRecipe({...activeRecipe, ingredients: activeRecipe.ingredients.filter(i => i.ingredientId !== ri.ingredientId)})} className="p-4 text-zinc-700 hover:text-rose-500 transition-all shadow-xl rounded-full bg-black/20 group-hover:scale-110"><Trash2 size={24} /></button>
+                </div>
+              ))}
+           </div>
+           <button onClick={async () => { if (activeRecipe.id) await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'recipes', activeRecipe.id), activeRecipe); setIsRecipeModalOpen(false); }} className="w-full bg-white text-black font-black py-8 rounded-[2rem] uppercase text-[11px] tracking-[0.5em] shadow-2xl active:scale-95 transition-all leading-none italic font-black">Sahkan Formula Baru</button>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+// --- STANDALONE UI (INVENTORY, PURCHASES, SCALER, REPORTS, SETTINGS) ---
+
+function InventoryPage({ user, ingredients }) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingIng, setEditingIng] = useState(null);
+  return (
+    <div className="space-y-12 animate-in fade-in duration-700">
+      <header className="flex justify-between items-end">
+        <div><p className="text-zinc-600 uppercase tracking-[0.5em] text-[10px] font-black mb-3 italic opacity-40 uppercase">Resources</p><h2 className="text-5xl font-black tracking-tighter uppercase italic leading-none text-white">INVENTORI</h2></div>
+        <button onClick={() => { setEditingIng(null); setIsModalOpen(true); }} className="bg-white text-black px-12 py-5 rounded-[1.5rem] text-[10px] font-black shadow-2xl uppercase tracking-widest"><Plus size={18} /> Bahan Baru</button>
+      </header>
+      <div className={`${THEME.card} rounded-[3.5rem] overflow-hidden shadow-2xl`}><div className="overflow-x-auto text-white"><table className="w-full text-left text-sm"><thead><tr className="border-b border-[#1f1f1f] text-zinc-600 uppercase text-[11px] tracking-[0.4em] bg-zinc-900/50 font-black"><th className="px-12 py-10">Bahan Utama</th><th className="px-12 py-10 text-center">Baki Stok</th><th className="px-12 py-10 text-right font-black tracking-widest">Kos Purata</th></tr></thead><tbody className="divide-y divide-[#161616]">
+        {ingredients.map(i => (
+          <tr key={i.id} className="hover:bg-white/[0.01] transition-colors group text-white"><td className="px-12 py-12"><div className="font-black text-2xl uppercase tracking-tighter mb-2 italic leading-none">{i.name}</div><div className="text-[10px] text-zinc-700 font-bold uppercase tracking-widest leading-none">{i.category}</div></td><td className="px-12 py-12 text-center font-mono font-black text-3xl tracking-widest leading-none italic">{formatUnit(i.currentStock, i.unit)}</td><td className="px-12 py-12 text-right font-mono font-black text-xl text-zinc-600 italic tracking-tighter leading-none">{formatRM(i.avgUnitCostRM)}/u</td></tr>
+        ))}</tbody></table></div></div>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Pangkalan Bahan Mentah"><form onSubmit={async (e) => { e.preventDefault(); const f = new FormData(e.target); const d = { name: f.get('n').toUpperCase(), category: f.get('c'), unit: f.get('u'), currentStock: parseFloat(f.get('s')) || 0, avgUnitCostRM: parseFloat(f.get('k')) || 0 }; const base = ['artifacts', appId, 'users', user.uid, 'ingredients']; if (editingIng) await updateDoc(doc(db, ...base, editingIng.id), d); else await addDoc(collection(db, ...base), d); setIsModalOpen(false); }} className="space-y-12 text-white"><input name="n" defaultValue={editingIng?.name} required placeholder="NAMA BAHAN" className={`w-full ${THEME.input} rounded-[2rem] px-10 py-7 font-black uppercase text-sm shadow-2xl outline-none italic`} /><div className="grid grid-cols-2 gap-8 text-white"><select name="c" defaultValue={editingIng?.category || 'raw'} className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 font-black text-xs outline-none text-white font-black italic`}><option value="raw" className="text-zinc-800">RAW MATERIAL</option><option value="packaging" className="text-zinc-800">PACKAGING</option></select><select name="u" defaultValue={editingIng?.unit || 'ml'} className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 font-black text-xs outline-none text-white font-black italic`}><option value="ml" className="text-zinc-800">ML</option><option value="g" className="text-zinc-800">G</option><option value="pcs" className="text-zinc-800">PCS</option></select></div><div className="grid grid-cols-2 gap-8 text-white"><input name="s" type="number" defaultValue={editingIng?.currentStock || 0} step="0.01" placeholder="STOK" className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 font-mono font-black text-xl text-center italic outline-none`} /><input name="k" type="number" defaultValue={editingIng?.avgUnitCostRM || 0} step="0.0001" placeholder="KOS" className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 font-mono font-black text-xl text-center italic outline-none`} /></div><button type="submit" className="w-full bg-white text-black font-black py-8 rounded-[2rem] uppercase tracking-[0.5em] text-[11px] shadow-2xl transition-all font-black italic">Simpan Data Baru</button></form></Modal>
+    </div>
+  );
+}
+
+function PurchasesPage({ user, purchases, ingredients }) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  return (
+    <div className="space-y-12 animate-in fade-in duration-700">
+      <header className="flex justify-between items-end">
+        <div><p className="text-zinc-600 uppercase tracking-[0.5em] text-[10px] font-black mb-3 italic opacity-40 uppercase">Capital</p><h2 className="text-5xl font-black tracking-tighter uppercase leading-none italic text-white">PEMBELIAN</h2></div>
+        <button onClick={() => setIsModalOpen(true)} className="bg-white text-black px-12 py-5 rounded-[1.5rem] text-[10px] font-black shadow-2xl uppercase tracking-widest"><Plus size={18} /> Log Belian</button>
+      </header>
+      <div className={`${THEME.card} rounded-[3.5rem] overflow-hidden shadow-2xl`}><div className="overflow-x-auto text-white"><table className="w-full text-left text-sm text-white"><thead><tr className="border-b border-[#1f1f1f] text-zinc-600 uppercase text-[11px] bg-zinc-900/50 font-black tracking-[0.4em]"><th className="px-12 py-10">Tarikh Rekod</th><th className="px-12 py-10">Item Belian</th><th className="px-12 py-10 text-right">Kos Total</th></tr></thead><tbody className="divide-y divide-[#161616]">
+        {purchases.sort((a,b) => b.timestamp - a.timestamp).map(p => (
+          <tr key={p.id} className="hover:bg-white/[0.01] transition-colors group"><td className="px-12 py-12 font-mono text-zinc-700 text-[11px] font-black italic uppercase tracking-widest leading-none">{p.timestamp?.toDate().toLocaleDateString()}</td><td className="px-12 py-12 font-black text-2xl uppercase tracking-tighter leading-none italic text-white">{p.ingName} <span className="text-[10px] text-zinc-800 font-bold ml-4 uppercase opacity-50 not-italic">({formatUnit(p.qty, p.unit)})</span></td><td className="px-12 py-12 text-right font-mono font-black text-3xl text-white tracking-tighter leading-none italic">{formatRM(p.cost)}</td></tr>
+        ))}</tbody></table></div></div>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Log Belian Baru"><form onSubmit={async (e) => { e.preventDefault(); const f = new FormData(e.target); const iId = f.get('id'); const q = parseFloat(f.get('q')); const c = parseFloat(f.get('c')); const ing = ingredients.find(i => i.id === iId); if (!ing) return; const nS = ing.currentStock + q; const nA = (ing.currentStock * ing.avgUnitCostRM + c) / nS; const base = ['artifacts', appId, 'users', user.uid]; await addDoc(collection(db, ...base, 'purchases'), { ingName: ing.name, qty: q, cost: c, unit: ing.unit, timestamp: Timestamp.now() }); await updateDoc(doc(db, ...base, 'ingredients', iId), { currentStock: increment(q), avgUnitCostRM: nA }); setIsModalOpen(false); }} className="space-y-12 text-white"><div className="space-y-4"><label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-widest">Pilih Bahan Mentah</label><select name="id" required className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 text-xs font-black uppercase outline-none shadow-2xl text-white italic`}>{ingredients.map(i => <option key={i.id} value={i.id} className="text-zinc-800">{i.name} ({i.unit})</option>)}</select></div><div className="grid grid-cols-2 gap-8 text-white"><div className="space-y-4 text-center"><label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-widest block leading-none italic">Kuantiti Beli</label><input name="q" type="number" step="0.01" placeholder="0.00" className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 text-2xl font-mono font-black text-center shadow-inner outline-none italic`} /></div><div className="space-y-4 text-center"><label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-widest block leading-none italic">Harga Total (RM)</label><input name="c" type="number" step="0.01" placeholder="0.00" className={`w-full ${THEME.input} rounded-[2rem] px-8 py-6 text-2xl font-mono font-black text-center shadow-inner outline-none italic`} /></div></div><button type="submit" className="w-full bg-white text-black font-black py-8 rounded-[2rem] uppercase tracking-[0.5em] text-[11px] shadow-2xl active:scale-95 transition-all font-black italic">Sahkan Transaksi</button></form></Modal>
+    </div>
+  );
+}
+
+function RecipePage({ user, recipes, products, ingredients }) {
+  const [scaleInput, setScaleInput] = useState(1);
+  const [scaleMode, setScaleMode] = useState('bottles');
+  const [isSetupOpen, setIsSetupOpen] = useState(false);
+  const [selectedBaseId, setSelectedBaseId] = useState('');
+  const [targetVol, setTargetVol] = useState('');
+  const [suggestion, setSuggestion] = useState(null);
+  const activeRecipe = recipes[0];
+  const calculated = useMemo(() => {
+    if (!activeRecipe) return [];
+    const multiplier = scaleMode === 'bottles' ? scaleInput : scaleInput / 250;
+    return activeRecipe.ingredients.map(ri => {
+      const ing = ingredients.find(i => i.id === ri.ingredientId);
+      const needed = ri.quantityPerBottle * multiplier;
+      return { ...ing, needed, shortage: Math.max(0, needed - (ing?.currentStock || 0)) };
+    });
+  }, [activeRecipe, scaleInput, scaleMode, ingredients]);
+
+  return (
+    <div className="space-y-12 animate-in fade-in duration-700 text-white">
+      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-8">
+        <div><p className="text-zinc-600 uppercase tracking-[0.5em] text-[10px] font-black mb-3 italic opacity-40 uppercase">Tools</p><h2 className="text-5xl font-black tracking-tighter uppercase leading-none italic text-white">SCALER</h2></div>
+        <button onClick={() => setIsSetupOpen(true)} className="bg-white text-black px-12 py-5 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest shadow-2xl active:scale-95 transition-all italic font-black"><Calculator size={18} /> Setup Saiz Baru</button>
+      </header>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 text-white">
+        <div className={`${THEME.card} p-12 rounded-[3.5rem] space-y-12 shadow-2xl text-white`}>
+          <div className="flex gap-3 p-2 bg-black rounded-3xl border border-zinc-900 shadow-inner text-white">
+            <button onClick={() => setScaleMode('bottles')} className={`flex-1 py-5 text-[10px] font-black rounded-2xl transition-all ${scaleMode === 'bottles' ? 'bg-zinc-900 text-white shadow-2xl' : 'text-zinc-800'}`}>BATCH UNIT</button>
+            <button onClick={() => setScaleMode('volume')} className={`flex-1 py-5 text-[10px] font-black rounded-2xl transition-all ${scaleMode === 'volume' ? 'bg-zinc-900 text-white shadow-2xl' : 'text-zinc-800'}`}>TARGET ML</button>
+          </div>
+          <div className="space-y-6 text-center">
+             <label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-[0.5em] leading-none block italic">Banyak Batch?</label>
+             <input type="number" value={scaleInput} onChange={e => setScaleInput(e.target.value)} className="w-full bg-transparent border-b-4 border-zinc-900 focus:border-white p-8 text-8xl font-black outline-none font-mono text-white text-center transition-all leading-none italic shadow-inner" />
+          </div>
+        </div>
+        <div className="lg:col-span-2 text-white">
+           <div className={`${THEME.card} rounded-[3.5rem] overflow-hidden shadow-2xl`}>
+            <table className="w-full text-left text-sm text-white">
+              <thead><tr className="border-b border-[#1f1f1f] text-zinc-600 uppercase text-[11px] tracking-[0.5em] font-black bg-zinc-900/50 uppercase italic"><th className="px-12 py-10">Bahan Utama</th><th className="px-12 py-10 text-right">Sukatan</th><th className="px-12 py-10 text-right">Status Stok</th></tr></thead>
+              <tbody className="divide-y divide-[#161616]">
+                {calculated.map(item => (
+                  <tr key={item.id} className="hover:bg-white/[0.02] transition-colors group"><td className="px-12 py-12 font-black text-2xl uppercase tracking-tighter italic leading-none">{item.name}</td><td className="px-12 py-12 text-right font-mono font-black text-3xl tracking-tighter group-hover:scale-110 transition-transform leading-none text-white">{formatUnit(item.needed, item.unit)}</td><td className="px-12 py-12 text-right">
+                      {item.shortage > 0 ? <span className="text-rose-500 font-black text-[10px] bg-rose-500/10 px-8 py-3 rounded-[2rem] border border-rose-500/20 uppercase tracking-[0.4em] shadow-lg animate-pulse leading-none italic font-black">Kurang {formatUnit(item.shortage, item.unit)}</span> : <span className="text-emerald-500 font-black text-[11px] uppercase tracking-[0.5em] opacity-40 italic leading-none font-black italic uppercase">Cukup</span>}
+                    </td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <Modal isOpen={isSetupOpen} onClose={() => { setIsSetupOpen(false); setSuggestion(null); }} title="Setup Saiz Baru (Formula)">
+         <div className="space-y-12">
+            <div className="space-y-4 text-white"><label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-widest italic">Pilih Resipi Asal</label>
+            <select value={selectedBaseId} onChange={e => setSelectedBaseId(e.target.value)} className={`w-full ${THEME.input} rounded-[2.5rem] px-10 py-7 text-sm font-black uppercase outline-none shadow-2xl text-white italic`}>
+               <option value="" className="text-zinc-800 font-bold">PILIH MENU...</option>
+               {products.map(p => <option key={p.id} value={p.id} className="text-zinc-800 font-bold uppercase">{p.name} ({p.volume}ml)</option>)}
+            </select></div>
+            <div className="space-y-4 text-white text-center"><label className="text-[10px] font-black uppercase text-zinc-600 italic tracking-widest block leading-none italic uppercase">Saiz Baru (ml)</label>
+            <input type="number" value={targetVol} onChange={e => setTargetVol(e.target.value)} className={`w-full bg-transparent border-b-2 border-zinc-900 focus:border-white p-8 text-7xl font-black font-mono outline-none text-center shadow-inner uppercase italic text-white leading-none`} placeholder="0" /></div>
+            <button onClick={() => {
+              const baseP = products.find(p => p.id === selectedBaseId);
+              const baseR = recipes.find(r => r.productId === selectedBaseId);
+              if (baseP && baseR && targetVol) {
+                const ratio = parseFloat(targetVol) / baseP.volume;
+                setSuggestion(baseR.ingredients.map(ri => ({ ...ri, suggested: (ri.quantityPerBottle * ratio).toFixed(2) })));
+              }
+            }} className="w-full bg-white text-black font-black py-8 rounded-[2.5rem] uppercase text-[11px] tracking-[0.6em] shadow-[0_20px_60px_rgba(255,255,255,0.15)] active:scale-95 transition-all italic leading-none font-black">Kira Formula Baharu</button>
+            {suggestion && (
+              <div className="pt-12 border-t border-zinc-900 space-y-8 animate-in slide-in-from-top-4 duration-700 text-white font-black">
+                 <h4 className="text-[11px] font-black uppercase tracking-[0.5em] text-emerald-500 italic tracking-widest leading-none italic uppercase">Hasil Kiraan Sukatan Baharu:</h4>
+                 <div className="grid gap-4">
+                    {suggestion.map(s => (
+                      <div key={s.ingredientId} className="flex justify-between items-center bg-zinc-900/40 p-8 rounded-[3rem] border border-zinc-800 shadow-inner group hover:border-white transition-colors">
+                        <span className="text-[12px] font-black uppercase tracking-[0.4em] text-zinc-500 group-hover:text-white transition-colors italic uppercase">{s.name}</span>
+                        <span className="font-mono font-black text-3xl text-white tracking-tighter leading-none italic">{s.suggested}{s.unit}</span>
+                      </div>
+                    ))}
+                 </div>
+              </div>
+            )}
+         </div>
+      </Modal>
+    </div>
+  );
+}
+
+function ReportsPage({ sales }) {
+  const data = useMemo(() => {
+    const map = {};
+    sales.forEach(s => {
+      const d = new Date(s.timestamp?.toDate()).toLocaleDateString('en-MY', { day: '2-digit', month: 'short' });
+      if (!map[d]) map[d] = { date: d, revenue: 0, profit: 0 };
+      map[d].revenue += s.totalPrice || 0;
+      map[d].profit += s.totalProfit || 0;
+    });
+    return Object.values(map).reverse().slice(-14);
+  }, [sales]);
+  return (
+    <div className="space-y-12 animate-in fade-in duration-1000 text-white">
+      <header><p className="text-zinc-600 uppercase tracking-[0.5em] text-[10px] font-black mb-3 italic opacity-40 tracking-widest italic leading-none uppercase">Analysis</p><h2 className="text-6xl font-black tracking-tighter uppercase text-white leading-none italic italic">LAPORAN</h2></header>
+      <div className={`${THEME.card} p-12 lg:p-16 rounded-[4rem] h-[42rem] shadow-2xl relative overflow-hidden group text-white`}>
+         <div className="absolute top-16 left-16 z-10 font-black uppercase tracking-widest uppercase italic text-zinc-700 tracking-[0.5em] group-hover:text-white transition-colors">Financial Trends (2 Weeks)</div>
+         <ResponsiveContainer width="100%" height="100%"><AreaChart data={data} margin={{ top: 140, right: 30, left: -10, bottom: 0 }}><defs><linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#fff" stopOpacity={0.15}/><stop offset="95%" stopColor="#fff" stopOpacity={0}/></linearGradient></defs><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1a1a1a" /><XAxis dataKey="date" stroke="#333" fontSize={11} axisLine={false} tickLine={false} fontStyle="italic" dy={20} /><YAxis stroke="#333" fontSize={11} axisLine={false} tickLine={false} fontStyle="italic" /><Tooltip contentStyle={{ backgroundColor: '#000', border: '1px solid #333', borderRadius: '40px', fontWeight: 'black', textTransform: 'uppercase', fontSize: '12px', padding: '30px' }} /><Area type="monotone" dataKey="revenue" stroke="#333" fillOpacity={1} fill="url(#colorRev)" strokeWidth={3} /><Area type="monotone" dataKey="profit" stroke="#fff" fillOpacity={0} strokeWidth={6} dot={{fill: '#fff', r: 8, strokeWidth: 0}} /></AreaChart></ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+function SettingsPage({ user, settings }) {
+  const update = async (k, v) => await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'config'), { ...settings, [k]: v }, { merge: true });
+  return (
+    <div className="max-w-3xl space-y-12 animate-in fade-in duration-1000 text-white">
+      <header><p className="text-zinc-600 uppercase tracking-[0.5em] text-[10px] font-black mb-3 italic text-white/40 tracking-widest uppercase italic">Preferences</p><h2 className="text-6xl font-black tracking-tighter uppercase text-white leading-none italic">TETAPAN</h2></header>
+      <div className={`${THEME.card} p-16 rounded-[4rem] space-y-16 text-white shadow-2xl`}>
+        <div className="flex items-center justify-between gap-12 text-white leading-none group"><div className="space-y-3"><h4 className="font-black text-3xl italic uppercase tracking-tighter text-white leading-none group-hover:tracking-normal transition-all italic">Auto-Deduct Stok</h4><p className="text-[11px] text-zinc-600 font-bold uppercase tracking-[0.3em] italic leading-relaxed tracking-widest max-w-sm italic">Penolakan stok bahan mentah secara automatik setiap kali order disahkan.</p></div><button onClick={() => update('autoDeduct', !settings.autoDeduct)} className={`w-20 h-10 rounded-full transition-all relative ${settings.autoDeduct ? 'bg-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.5)]' : 'bg-zinc-900 shadow-inner'}`}><div className={`absolute top-1.5 w-7 h-7 rounded-full bg-white shadow-2xl transition-all ${settings.autoDeduct ? 'left-11' : 'left-2'}`} /></button></div>
+        <div className="h-px bg-zinc-900/50" />
+        <div className="flex items-center justify-between gap-12 text-white leading-none group"><div className="space-y-3"><h4 className="font-black text-3xl italic uppercase tracking-tighter text-white leading-none group-hover:tracking-normal transition-all italic">Watermark Latar</h4><p className="text-[11px] text-zinc-600 font-bold uppercase tracking-[0.3em] italic leading-relaxed tracking-widest max-w-sm italic">Paparan logo perniagaan secara artistik di latar belakang sistem.</p></div><button onClick={() => update('watermark', !settings.watermark)} className={`w-20 h-10 rounded-full transition-all relative ${settings.watermark ? 'bg-white shadow-[0_0_30px_rgba(255,255,255,0.4)]' : 'bg-zinc-900 shadow-inner'}`}><div className={`absolute top-1.5 w-7 h-7 rounded-full bg-black shadow-2xl transition-all ${settings.watermark ? 'left-11' : 'left-2'}`} /></button></div>
+      </div>
+      <div className="pt-32 text-center opacity-30 space-y-8 text-white"><p className="text-[11px] font-black uppercase tracking-[1.5em] italic italic italic leading-none tracking-widest animate-pulse italic uppercase">KMY BRU • CLOUD PRODUCTION V5.0</p><div className="flex items-center justify-center gap-4 text-white uppercase italic"><CheckCircle2 size={12} className="text-emerald-500" /><p className="font-mono text-[9px] tracking-[0.5em] uppercase opacity-40 italic">{user.uid}</p></div></div>
+    </div>
+  );
+}
+
+// --- AUTH PAGE ---
+
+function AuthPage() {
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const handleAuth = async (e) => {
+    e.preventDefault();
+    setError('');
+    try {
+      if (isLogin) await signInWithEmailAndPassword(auth, email, password);
+      else await createUserWithEmailAndPassword(auth, email, password);
+    } catch (err) { 
+      let msg = err.message.toUpperCase();
+      if(msg.includes('ADMIN-RESTRICTED-OPERATION')) msg = 'LOG MASUK TANPA NAMA DISEKAT. SILA DAFTAR AKAUN MANUAL.';
+      setError(msg); 
+    }
+  };
+  return (
+    <div className="min-h-screen bg-black flex items-center justify-center p-12 text-white overflow-hidden relative">
+      <div className="absolute inset-0 bg-gradient-to-br from-zinc-900/20 to-black pointer-events-none z-0" />
+      <div className="w-full max-w-sm space-y-20 animate-in fade-in zoom-in-95 duration-1000 relative z-10">
+        <div className="text-center space-y-10 group">
+           <div className="w-28 h-28 bg-white rounded-[2.5rem] mx-auto flex items-center justify-center rotate-6 shadow-[0_20px_80px_rgba(255,255,255,0.3)] transition-all group-hover:rotate-0 group-hover:scale-110 duration-700 shadow-2xl"><Coffee className="text-black" size={56} /></div>
+           <div><h1 className="text-7xl font-black italic tracking-tighter text-white uppercase italic leading-none hover:tracking-normal transition-all cursor-default">KMY BRU</h1><p className="text-zinc-800 text-[10px] font-black uppercase tracking-[0.8em] mt-8 italic opacity-40 leading-none italic uppercase">System Control</p></div>
+        </div>
+        <form onSubmit={handleAuth} className="space-y-8">
+          <input type="email" placeholder="E-MEL OPERATOR" className={`w-full ${THEME.input} rounded-[2rem] px-10 py-6 text-[11px] font-black uppercase tracking-[0.4em] outline-none shadow-2xl text-center focus:scale-105 transition-transform uppercase italic`} value={email} onChange={e => setEmail(e.target.value)} required />
+          <input type="password" placeholder="PASSWORD" className={`w-full ${THEME.input} rounded-[2rem] px-10 py-6 text-[11px] font-black tracking-[0.4em] outline-none shadow-2xl text-center focus:scale-105 transition-transform uppercase italic`} value={password} onChange={e => setPassword(e.target.value)} required />
+          {error && <p className="text-rose-500 text-[10px] font-black text-center uppercase tracking-[0.3em] animate-bounce italic leading-relaxed">{error}</p>}
+          <button type="submit" className="w-full bg-white text-black font-black py-7 rounded-[2rem] shadow-[0_25px_60px_rgba(255,255,255,0.25)] hover:bg-zinc-200 transition-all uppercase tracking-[0.5em] text-[11px] active:scale-95 shadow-2xl leading-none italic font-black">
+             {isLogin ? 'ENTER CLOUD' : 'INITIALIZE'}
+          </button>
+        </form>
+        <p className="text-center text-zinc-800 text-[10px] uppercase tracking-[0.4em] font-black italic leading-none uppercase italic">
+           {isLogin ? "No Access? " : "Registered? "}
+           <button onClick={() => setIsLogin(!isLogin)} className="text-white hover:underline transition-all ml-4 uppercase italic tracking-widest underline-offset-[10px] font-black decoration-zinc-800 hover:decoration-white italic uppercase">
+              {isLogin ? 'Request' : 'Login'}
+           </button>
+        </p>
+      </div>
+    </div>
+  );
+}
