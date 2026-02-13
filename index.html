@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KMY BRU | System v3.1</title>
+    <title>KMY BRU | System v3.2</title>
     <!-- Font Inter untuk kejelasan maksimum -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     
@@ -198,7 +198,7 @@
             <p style="margin: 5px 0 20px 0; opacity: 0.9; font-size: 1.1rem;">Sistem Pengurusan Perniagaan Premium</p>
             <button class="enter-btn" onclick="app.enterSystem()">MASUK SISTEM ▶</button>
         </div>
-        <small style="position: absolute; bottom: 20px; opacity: 0.5;">v3.1 Final Stable</small>
+        <small style="position: absolute; bottom: 20px; opacity: 0.5;">v3.2 Final Stable</small>
     </div>
 
     <!-- 2. CONFIRMATION MODAL -->
@@ -790,7 +790,7 @@
                 profitEl.textContent = `RM ${profit.toFixed(2)}`;
                 
                 const check = Calc.checkStock(m.recipe, qty);
-                warnEl.textContent = check.ok ? '' : `⚠️ STOK TIDAK CUKUP: ${check.missing}`;
+                warnEl.textContent = check.ok ? '' : `⚠️ STOK RENDAH (BOLEH TERUSKAN)`;
             },
             submitSale: (e) => {
                 e.preventDefault();
@@ -799,7 +799,7 @@
                 const m = Storage.get('menus').find(x => String(x.id) === String(id));
                 
                 const check = Calc.checkStock(m.recipe, qty);
-                if(!check.ok) return app.toast(`Gagal: ${check.missing} tidak cukup!`, 'error');
+                if(!check.ok) app.toast(`Amaran: Stok ${check.missing} menjadi negatif.`, 'error');
 
                 // Deduct stock
                 let db = Storage.get('ingredients');
