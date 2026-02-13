@@ -2,592 +2,856 @@
 <html lang="ms">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KMY BRU | Master Control</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KMY BRU | System v3.0</title>
+    <!-- Font Inter untuk kejelasan maksimum -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- React & Babel -->
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
-    <!-- Recharts Dependencies -->
-    <script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
-    <script src="https://unpkg.com/recharts@2.12.0/umd/Recharts.js"></script>
-    
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-
-    <!-- Professional Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
-
     <style>
         :root {
-            --bg: #000000;
-            --card: #0c0c0c;
-            --border: #1a1a1a;
-            --accent: #ffffff;
+            /* TEMA: MODERN CAFE PRO (Jelas & Profesional) */
+            --primary: #43342E;      /* Dark Coffee - Sidebar & Headings */
+            --accent: #D4A373;       /* Gold/Latte - Highlights */
+            --bg-body: #F3F4F6;      /* Light Grey - Mata tak sakit */
+            --bg-card: #FFFFFF;      /* Pure White - Kontras tinggi */
+            
+            --text-dark: #1F2937;    /* Hampir Hitam - Bacaan jelas */
+            --text-muted: #6B7280;   /* Grey - Info tambahan */
+            
+            --success: #10B981;      /* Emerald Green - Duit/Berjaya */
+            --danger: #EF4444;       /* Bright Red - Delete/Error */
+            --info: #3B82F6;         /* Blue - Edit/Info */
+            
+            --radius: 8px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
-        body {
-            background-color: var(--bg);
-            color: #e5e7eb;
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            overflow-x: hidden;
-            -webkit-font-smoothing: antialiased;
-        }
-        .header-text {
-            font-weight: 800;
-            letter-spacing: -0.01em;
-            text-transform: uppercase;
-        }
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #000; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #222; border-radius: 10px; }
-        
-        .fade-in { animation: fadeIn 0.2s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.99); } to { opacity: 1; transform: scale(1); } }
 
-        .bru-input {
-            background: #080808;
-            border: 1px solid #222;
-            border-radius: 0.75rem;
-            padding: 0.75rem 1rem;
-            font-weight: 500;
-            color: white;
-            outline: none;
-            width: 100%;
-            font-size: 0.875rem;
-            transition: all 0.2s ease;
-        }
-        .bru-input:focus { border-color: white; background: #000; }
+        * { box-sizing: border-box; }
         
-        table { border-collapse: separate; border-spacing: 0 4px; width: 100%; }
-        tr { background: #080808; }
-        td, th { padding: 0.85rem 1rem; text-align: left; }
-        td:first-child, th:first-child { border-radius: 0.75rem 0 0 0.75rem; }
-        td:last-child, th:last-child { border-radius: 0 0.75rem 0.75rem 0; }
-
-        .btn-action {
-            transition: all 0.2s;
+        body { 
+            margin: 0; 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--bg-body); 
+            color: var(--text-dark);
+            display: flex; 
+            height: 100vh; 
+            overflow: hidden; 
         }
-        .btn-action:active { transform: scale(0.95); }
+
+        /* --- LANDING PAGE (Robust) --- */
+        #landing-page {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--primary); /* Fallback color */
+            z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: white; transition: opacity 0.5s ease;
+        }
+        .landing-bg {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover; opacity: 0.4;
+        }
+        .landing-content {
+            position: relative; z-index: 2; text-align: center;
+            background: rgba(0,0,0,0.5); padding: 40px; border-radius: var(--radius);
+            backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.2);
+        }
+        .enter-btn {
+            margin-top: 20px; padding: 12px 40px; font-size: 1rem; font-weight: 700;
+            background: var(--accent); color: white; border: none; border-radius: 50px;
+            cursor: pointer; transition: transform 0.2s; box-shadow: 0 4px 15px rgba(212, 163, 115, 0.4);
+        }
+        .enter-btn:hover { transform: scale(1.05); background: #c6905a; }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: 260px; background-color: var(--primary); color: white;
+            display: flex; flex-direction: column; padding: 20px; flex-shrink: 0;
+        }
+        .brand { 
+            font-size: 1.5rem; font-weight: 800; text-align: center; margin-bottom: 30px;
+            padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); letter-spacing: 1px;
+        }
+        .nav-links { list-style: none; padding: 0; margin: 0; }
+        .nav-links li { margin-bottom: 5px; }
+        .nav-links button {
+            width: 100%; background: transparent; border: none; color: rgba(255,255,255,0.7);
+            text-align: left; padding: 12px 15px; font-size: 0.95rem; font-weight: 500;
+            border-radius: var(--radius); cursor: pointer; transition: 0.2s;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .nav-links button:hover { background: rgba(255,255,255,0.1); color: white; }
+        .nav-links button.active { background: var(--accent); color: white; font-weight: 700; shadow: var(--shadow); }
+
+        /* --- MAIN CONTENT --- */
+        .main-content {
+            flex-grow: 1; padding: 30px; overflow-y: auto; scroll-behavior: smooth;
+        }
+        h2 { color: var(--primary); margin: 0 0 20px 0; font-size: 1.8rem; font-weight: 800; letter-spacing: -0.5px; }
+
+        /* --- CARDS --- */
+        .card {
+            background: var(--bg-card); border-radius: var(--radius); padding: 25px;
+            box-shadow: var(--shadow); margin-bottom: 20px; border: 1px solid #E5E7EB;
+        }
+        .card h3 { margin-top: 0; font-size: 1.1rem; color: var(--text-dark); border-bottom: 2px solid #F3F4F6; padding-bottom: 10px; margin-bottom: 20px; }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+
+        /* Stats */
+        .stat-card { text-align: center; border-bottom: 4px solid var(--accent); }
+        .stat-value { font-size: 2rem; font-weight: 800; color: var(--text-dark); margin: 10px 0; }
+        .stat-label { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
+
+        /* --- TABLES --- */
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 12px; background: #F9FAFB; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 700; border-bottom: 2px solid #E5E7EB; }
+        td { padding: 12px; border-bottom: 1px solid #F3F4F6; font-size: 0.9rem; vertical-align: middle; }
+        tr:hover td { background: #F9FAFB; }
+        .text-right { text-align: right; }
+
+        /* --- BUTTONS & ACTIONS --- */
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 0.9rem;
+            border: none; cursor: pointer; transition: 0.2s; gap: 8px;
+        }
+        .btn:active { transform: scale(0.98); }
+        
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: #2b211d; }
+        
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #059669; }
+        
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #dc2626; }
+        
+        .btn-secondary { background: white; border: 1px solid #D1D5DB; color: var(--text-dark); }
+        .btn-secondary:hover { background: #F3F4F6; }
+
+        .btn-sm { padding: 6px 10px; font-size: 0.8rem; }
+        .action-group { display: flex; gap: 5px; justify-content: flex-end; }
+
+        /* --- FORMS --- */
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9rem; color: var(--text-dark); }
+        input, select {
+            width: 100%; padding: 10px; border: 1px solid #D1D5DB; border-radius: 6px;
+            font-size: 0.95rem; font-family: 'Inter', sans-serif; transition: 0.2s;
+        }
+        input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(212, 163, 115, 0.2); }
+
+        /* --- BADGES --- */
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+        .badge-low { background: #FEE2E2; color: #991B1B; }
+        .badge-ok { background: #D1FAE5; color: #065F46; }
+
+        /* --- UTILS --- */
+        .hidden { display: none !important; }
+        .text-danger { color: var(--danger); font-weight: 700; }
+        .recipe-item { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+
+        /* --- MODAL --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); backdrop-filter: blur(2px);
+            display: flex; align-items: center; justify-content: center; z-index: 2000;
+        }
+        .modal-box {
+            background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 400px;
+            text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        .modal-icon { font-size: 3rem; margin-bottom: 15px; display: block; }
+
+        /* --- TOAST --- */
+        .toast {
+            position: fixed; bottom: 20px; right: 20px; background: var(--text-dark); color: white;
+            padding: 12px 24px; border-radius: 8px; font-weight: 500;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); z-index: 3000;
+            animation: slideUp 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+        }
+        @keyframes slideUp { from { transform: translateY(100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        /* Mobile */
+        @media (max-width: 768px) {
+            body { flex-direction: column; height: auto; overflow-y: auto; }
+            .sidebar { width: 100%; padding: 15px; }
+            .brand { margin-bottom: 15px; border-bottom: none; font-size: 1.2rem; }
+            .nav-links { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px; }
+            .nav-links button { white-space: nowrap; background: rgba(255,255,255,0.1); padding: 8px 15px; font-size: 0.85rem; }
+            .nav-links button.active { background: white; color: var(--primary); }
+            .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+            .main-content { padding: 15px; }
+        }
     </style>
 </head>
 <body>
-    <div id="app"></div>
 
-    <script type="text/babel" data-type="module">
-        const { useState, useEffect, useMemo } = React;
-        const { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, AreaChart, Area } = window.Recharts;
+    <!-- 1. LANDING PAGE -->
+    <div id="landing-page">
+        <!-- Gunakan class 'landing-bg' supaya jika image rosak, background warna tetap ada -->
+        <img src="PNG LANDSACPE.png" onerror="this.style.display='none'" alt="Background" class="landing-bg">
+        <div class="landing-content">
+            <h1 style="margin: 0; font-size: 2.5rem; font-weight: 900; letter-spacing: -1px;">KMY BRU</h1>
+            <p style="margin: 5px 0 20px 0; opacity: 0.9; font-size: 1.1rem;">Sistem Pengurusan Perniagaan Premium</p>
+            <button class="enter-btn" onclick="app.enterSystem()">MASUK SISTEM ▶</button>
+        </div>
+        <small style="position: absolute; bottom: 20px; opacity: 0.5;">v3.0 Final Stable</small>
+    </div>
 
-        // --- FIREBASE CORE ---
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, Timestamp, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    <!-- 2. CONFIRMATION MODAL -->
+    <div id="confirm-modal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <span class="modal-icon">⚠️</span>
+            <h3 style="margin:0; color:var(--text-dark)">Pengesahan Padam</h3>
+            <p style="color:var(--text-muted); margin: 15px 0 25px 0;">Adakah anda pasti? Data yang dipadam tidak boleh dikembalikan.</p>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button id="confirm-yes-btn" class="btn btn-danger">Ya, Padam</button>
+                <button onclick="app.closeModal()" class="btn btn-secondary">Batal</button>
+            </div>
+        </div>
+    </div>
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyB8EE6iavqDKXJdmgLpOD6kMVYsskHu56w",
-            authDomain: "kmy-bru-manager.firebaseapp.com",
-            projectId: "kmy-bru-manager",
-            storageBucket: "kmy-bru-manager.firebasestorage.app",
-            messagingSenderId: "176073299379",
-            appId: "1:176073299379:web:6c5eeee23008d8f09b27c6"
-        };
+    <!-- 3. TOAST CONTAINER -->
+    <div id="toast-container"></div>
 
-        const fApp = initializeApp(firebaseConfig);
-        const auth = getAuth(fApp);
-        const db = getFirestore(fApp);
-        const activeAppId = "kmy-bru-master-v7"; // ID Sistem Konsisten
+    <!-- 4. APP INTERFACE -->
+    <div id="app-container" style="display: none; width: 100%; height: 100%; display: flex;">
+        
+        <!-- SIDEBAR -->
+        <nav class="sidebar">
+            <div class="brand">☕ KMY BRU</div>
+            <ul class="nav-links">
+                <li><button type="button" onclick="app.navigate('dashboard')" class="active" id="nav-dashboard">📊 Dashboard</button></li>
+                <li><button type="button" onclick="app.navigate('inventory')" id="nav-inventory">📦 Inventory Stok</button></li>
+                <li><button type="button" onclick="app.navigate('menu')" id="nav-menu">📜 Menu & Resipi</button></li>
+                <li><button type="button" onclick="app.navigate('sales')" id="nav-sales">💰 Rekod Jualan</button></li>
+                <li><button type="button" onclick="app.navigate('reports')" id="nav-reports">📈 Laporan Untung</button></li>
+            </ul>
+        </nav>
 
-        const formatRM = (v) => new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(v || 0);
-
-        // --- UI HELPERS ---
-
-        const Icon = ({ name, size = 18, className = "" }) => {
-            useEffect(() => { if (window.lucide) window.lucide.createIcons(); }, [name]);
-            return <i data-lucide={name} style={{ width: size, height: size }} className={className}></i>;
-        };
-
-        const Modal = ({ isOpen, onClose, title, children }) => {
-            if (!isOpen) return null;
-            return (
-                <div className="fixed inset-0 z-[100] flex justify-center items-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
-                    <div className="fixed inset-0 -z-10" onClick={onClose}></div>
-                    <div className="bg-[#0c0c0c] border border-[#1a1a1a] relative w-full max-w-3xl rounded-[1.5rem] shadow-2xl flex flex-col max-h-[90vh]">
-                        <div className="flex items-center justify-between p-5 border-b border-[#1a1a1a]">
-                            <h3 className="text-md header-text text-white">{title}</h3>
-                            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-all text-zinc-500 hover:text-white">
-                                <Icon name="x" size={20} />
-                            </button>
-                        </div>
-                        <div className="p-6 text-white overflow-y-auto custom-scrollbar">
-                            {children}
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        // --- COMPONENTS ---
-
-        function AuthPage() {
-            const [isLogin, setIsLogin] = useState(true);
-            const [email, setEmail] = useState('');
-            const [password, setPassword] = useState('');
-            const [error, setError] = useState('');
-
-            const handleAuth = async (e) => {
-                e.preventDefault();
-                setError('');
-                try {
-                    if (isLogin) await signInWithEmailAndPassword(auth, email, password);
-                    else await createUserWithEmailAndPassword(auth, email, password);
-                } catch (err) { setError(err.message.toUpperCase()); }
-            };
-
-            return (
-                <div className="min-h-screen bg-black flex items-center justify-center p-8">
-                    <div className="w-full max-w-sm space-y-10 fade-in">
-                        <div className="text-center space-y-3">
-                            <div className="w-16 h-16 bg-white rounded-2xl mx-auto flex items-center justify-center shadow-2xl">
-                                <Icon name="coffee" className="text-black" size={32} />
-                            </div>
-                            <h1 className="text-3xl header-text text-white">KMY BRU</h1>
-                            <p className="text-zinc-600 text-[9px] header-text tracking-[0.4em]">Master Dashboard</p>
-                        </div>
-                        <form onSubmit={handleAuth} className="space-y-4">
-                            <input type="email" placeholder="E-MEL" className="bru-input text-center" value={email} onChange={e => setEmail(e.target.value)} required />
-                            <input type="password" placeholder="PASSWORD" className="bru-input text-center" value={password} onChange={e => setPassword(e.target.value)} required />
-                            {error && <p className="text-red-500 text-[10px] font-bold text-center uppercase tracking-wider">{error}</p>}
-                            <button type="submit" className="w-full bg-white text-black py-4 rounded-xl header-text text-xs hover:bg-zinc-200 transition-all btn-action">
-                                {isLogin ? 'LOG MASUK' : 'DAFTAR AKSES'}
-                            </button>
-                        </form>
-                        <button onClick={() => setIsLogin(!isLogin)} className="w-full text-zinc-600 text-[10px] header-text hover:text-white transition-colors">
-                            {isLogin ? "TIADA AKAUN? DAFTAR" : "SUDAH ADA AKAUN? MASUK"}
-                        </button>
-                    </div>
-                </div>
-            );
-        }
-
-        function DashboardView({ sales }) {
-            const stats = useMemo(() => {
-                const profit = sales.reduce((acc, s) => acc + (s.totalProfit || 0), 0);
-                const revenue = sales.reduce((acc, s) => acc + (s.totalPrice || 0), 0);
-                return { profit, revenue, count: sales.length };
-            }, [sales]);
-
-            return (
-                <div className="space-y-8 fade-in">
-                    <header><p className="text-zinc-500 header-text text-[10px] mb-1 uppercase tracking-widest leading-none">Intelligence</p><h2 className="text-6xl header-text leading-none italic">OVERVIEW</h2></header>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div className="bg-[#080808] border border-[#111] p-8 rounded-2xl">
-                            <p className="text-zinc-600 header-text text-[9px] mb-2 tracking-widest uppercase">Untung Bersih</p>
-                            <h4 className="text-3xl header-text text-emerald-500 leading-none">{formatRM(stats.profit)}</h4>
-                        </div>
-                        <div className="bg-[#080808] border border-[#111] p-8 rounded-2xl">
-                            <p className="text-zinc-600 header-text text-[9px] mb-2 tracking-widest uppercase">Hasil Jualan</p>
-                            <h4 className="text-3xl header-text text-white leading-none">{formatRM(stats.revenue)}</h4>
-                        </div>
-                        <div className="bg-[#080808] border border-[#111] p-8 rounded-2xl">
-                            <p className="text-zinc-600 header-text text-[9px] mb-2 tracking-widest uppercase">Bil. Order</p>
-                            <h4 className="text-3xl header-text text-zinc-500 leading-none">{stats.count}</h4>
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-
-        function SalesPage({ user, sales, products, ingredients, recipes, settings }) {
-            const [isOpen, setIsOpen] = useState(false);
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
             
-            const handleOrder = async (e) => {
-                e.preventDefault();
-                const fd = new FormData(e.target);
-                const pId = fd.get('pId');
-                const qty = parseInt(fd.get('qty')) || 0;
-                const product = products.find(p => p.id === pId);
-                const recipe = recipes.find(r => r.productId === pId);
-                if (!product) return;
+            <!-- DASHBOARD -->
+            <section id="dashboard" class="page">
+                <h2>Dashboard Semasa</h2>
+                <div class="grid-4">
+                    <div class="card stat-card"><div class="stat-value" id="dash-today-sales">RM 0.00</div><div class="stat-label">Jualan Hari Ini</div></div>
+                    <div class="card stat-card"><div class="stat-value" id="dash-today-profit">RM 0.00</div><div class="stat-label">Untung Bersih</div></div>
+                    <div class="card stat-card"><div class="stat-value" id="dash-low-stock">0</div><div class="stat-label">Alert Stok Rendah</div></div>
+                    <div class="card stat-card"><div class="stat-value" id="dash-top-menu">-</div><div class="stat-label">Top Menu</div></div>
+                </div>
 
-                let cost = 0;
-                if (recipe) {
-                    recipe.ingredients.forEach(ri => {
-                        const ing = ingredients.find(i => i.id === ri.ingredientId);
-                        if (ing) cost += (ri.quantityPerBottle * (ing.avgUnitCostRM || 0));
-                    });
+                <div class="grid-2">
+                    <div class="card">
+                        <h3>⚠️ Amaran Stok (Perlu Restock)</h3>
+                        <table id="dash-stock-table"><thead><tr><th>Bahan</th><th>Baki</th><th>Status</th></tr></thead><tbody></tbody></table>
+                    </div>
+                    <div class="card">
+                        <h3>⏱️ Transaksi Terkini</h3>
+                        <table id="dash-sales-recent"><thead><tr><th>Masa</th><th>Menu</th><th>Qty</th></tr></thead><tbody></tbody></table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- INVENTORY -->
+            <section id="inventory" class="page hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div><h2 style="margin:0">Inventory</h2><p style="margin:0; color:var(--text-muted)">Urus bahan mentah dan kos.</p></div>
+                    <button class="btn btn-primary" onclick="app.toggleInventoryForm()">+ Tambah Bahan</button>
+                </div>
+
+                <div id="inventory-form-container" class="card hidden" style="border-top: 4px solid var(--accent);">
+                    <h3 id="inv-form-title">Maklumat Bahan</h3>
+                    <form id="inventory-form">
+                        <input type="hidden" id="inv-id">
+                        <div class="grid-2">
+                            <div class="form-group"><label>Nama Bahan</label><input type="text" id="inv-name" required placeholder="Cth: Susu Farm Fresh"></div>
+                            <div class="form-group"><label>Unit Ukuran</label><select id="inv-unit"><option value="g">Gram (g)</option><option value="ml">Mililiter (ml)</option><option value="pcs">Pcs (Biji)</option><option value="kg">Kilogram (kg)</option><option value="l">Liter (l)</option></select></div>
+                            <div class="form-group"><label>Kos Per Unit (RM)</label><input type="number" step="0.0001" id="inv-cost" required placeholder="0.01"></div>
+                            <div class="form-group"><label>Stok Semasa</label><input type="number" step="0.01" id="inv-stock" required></div>
+                            <div class="form-group"><label>Had Minimum (Alert)</label><input type="number" id="inv-low" required></div>
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button type="submit" class="btn btn-success">Simpan Data</button>
+                            <button type="button" class="btn btn-secondary" onclick="app.toggleInventoryForm()">Tutup</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <div style="overflow-x: auto;">
+                        <table id="inventory-table">
+                            <thead><tr><th>Nama Bahan</th><th>Kos Unit</th><th>Stok</th><th>Nilai Stok</th><th>Status</th><th class="text-right">Tindakan</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MENU -->
+            <section id="menu" class="page hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div><h2 style="margin:0">Menu & Resipi</h2><p style="margin:0; color:var(--text-muted)">Tetapkan harga dan kira kos automatik.</p></div>
+                    <button class="btn btn-primary" onclick="app.toggleMenuForm()">+ Menu Baru</button>
+                </div>
+
+                <div id="menu-form-container" class="card hidden" style="border-top: 4px solid var(--accent);">
+                    <h3 id="menu-form-title">Butiran Menu</h3>
+                    <form id="menu-form">
+                        <input type="hidden" id="menu-id">
+                        <div class="grid-3">
+                            <div class="form-group"><label>Nama Menu</label><input type="text" id="menu-name" required></div>
+                            <div class="form-group"><label>Harga Jual (RM)</label><input type="number" step="0.10" id="menu-price" required></div>
+                            <div class="form-group"><label>Saiz Hidangan (ML)</label><input type="number" id="menu-size" required></div>
+                        </div>
+                        
+                        <div style="background: #F9FAFB; padding: 20px; border-radius: var(--radius); margin-bottom: 20px; border: 1px solid #E5E7EB;">
+                            <h4 style="margin-top:0; color:var(--primary)">Resipi (Bahan Diperlukan)</h4>
+                            <div id="recipe-builder"></div>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="app.addRecipeRow()">+ Tambah Bahan</button>
+                        </div>
+
+                        <div style="display: flex; gap: 10px;">
+                            <button type="submit" class="btn btn-success">Simpan Menu</button>
+                            <button type="button" class="btn btn-secondary" onclick="app.toggleMenuForm()">Tutup</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <div style="overflow-x: auto;">
+                        <table id="menu-table">
+                            <thead><tr><th>Nama Menu</th><th>Harga Jual</th><th>Kos Bahan</th><th>Untung Kasar</th><th>Max Botol</th><th class="text-right">Tindakan</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SALES -->
+            <section id="sales" class="page hidden">
+                <h2>Rekod Jualan</h2>
+                <div class="card" style="border: 1px solid var(--accent);">
+                    <h3 style="color: var(--primary);">💰 Masukkan Jualan Baru</h3>
+                    <form id="sales-form">
+                        <div class="grid-3">
+                            <div class="form-group"><label>Pilih Menu</label><select id="sale-menu-id" required onchange="app.updateSaleInfo()"><option value="">-- Sila Pilih --</option></select></div>
+                            <div class="form-group"><label>Kuantiti</label><input type="number" id="sale-qty" min="1" value="1" required oninput="app.updateSaleInfo()"></div>
+                            <div class="form-group"><label>Tarikh</label><input type="date" id="sale-date" required></div>
+                        </div>
+                        <div style="background: #F3F4F6; padding: 15px; border-radius: var(--radius); display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-size: 0.9rem;">Anggaran Untung Transaksi:</div>
+                                <div id="sale-est-profit" style="font-size: 1.4rem; font-weight: 800; color: var(--success);">RM 0.00</div>
+                                <div id="sale-stock-warning" class="text-danger" style="font-size: 0.9rem;"></div>
+                            </div>
+                            <button type="submit" class="btn btn-primary" style="padding: 12px 30px;">SAHKAN JUALAN</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <h3>Sejarah Transaksi</h3>
+                    <div style="overflow-x: auto;">
+                        <table id="sales-table">
+                            <thead><tr><th>Tarikh</th><th>Menu</th><th>Qty</th><th>Total Hasil</th><th>Total Kos</th><th>Total Untung</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- REPORTS -->
+            <section id="reports" class="page hidden">
+                <h2>Laporan Prestasi</h2>
+                <div class="card">
+                    <div class="grid-3" style="align-items: end;">
+                        <div class="form-group"><label>Tarikh Mula</label><input type="date" id="report-start"></div>
+                        <div class="form-group"><label>Tarikh Akhir</label><input type="date" id="report-end"></div>
+                        <div class="form-group" style="display: flex; gap: 10px;">
+                            <button class="btn btn-primary" style="flex:1" onclick="app.generateReport()">Jana Laporan</button>
+                            <button class="btn btn-secondary" style="flex:1" onclick="exportData.downloadCSV()">Export CSV</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="report-results" class="hidden">
+                    <div class="grid-3">
+                        <div class="card stat-card"><div class="stat-value" id="rep-revenue">RM 0.00</div><div class="stat-label">Jumlah Hasil</div></div>
+                        <div class="card stat-card"><div class="stat-value text-danger" id="rep-cost">RM 0.00</div><div class="stat-label">Jumlah Kos Bahan</div></div>
+                        <div class="card stat-card"><div class="stat-value" style="color:var(--success)" id="rep-profit">RM 0.00</div><div class="stat-label">Untung Bersih</div></div>
+                    </div>
+
+                    <div class="card">
+                        <h3>Prestasi Mengikut Menu</h3>
+                        <table id="report-detail-table">
+                            <thead><tr><th>Menu</th><th>Unit Terjual</th><th>Hasil</th><th>Untung</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- LOGIC -->
+    <script>
+        // --- DATA MANAGEMENT ---
+        const Storage = {
+            get: (key) => JSON.parse(localStorage.getItem(key)) || [],
+            set: (key, data) => localStorage.setItem(key, JSON.stringify(data)),
+            init: () => {
+                // Pre-fill dummy data if empty
+                if (!localStorage.getItem('ingredients')) {
+                    Storage.set('ingredients', [
+                        { id: 1, name: 'Biji Kopi Premium', unit: 'g', costPerUnit: 0.08, currentStock: 5000, lowStockThreshold: 1000 },
+                        { id: 2, name: 'Susu Segar', unit: 'ml', costPerUnit: 0.007, currentStock: 10000, lowStockThreshold: 2000 },
+                        { id: 3, name: 'Gula Melaka', unit: 'g', costPerUnit: 0.02, currentStock: 2000, lowStockThreshold: 500 },
+                        { id: 4, name: 'Botol Kaca', unit: 'pcs', costPerUnit: 1.20, currentStock: 100, lowStockThreshold: 20 }
+                    ]);
                 }
-                
-                const base = ['artifacts', activeAppId, 'users', user.uid, 'sales'];
-                await addDoc(collection(db, ...base), {
-                    productName: product.name, quantitySold: qty, totalPrice: qty * product.price, totalCost: qty * cost, totalProfit: (qty * product.price) - (qty * cost), timestamp: Timestamp.now()
-                });
+                if (!localStorage.getItem('menus')) Storage.set('menus', []);
+                if (!localStorage.getItem('sales')) Storage.set('sales', []);
+            }
+        };
 
-                if (settings.autoDeduct && recipe) {
-                    for (const ri of recipe.ingredients) {
-                        await updateDoc(doc(db, 'artifacts', activeAppId, 'users', user.uid, 'ingredients', ri.ingredientId), {
-                            currentStock: increment(-(ri.quantityPerBottle * qty))
-                        });
+        // --- MATH ENGINE ---
+        const Calc = {
+            cost: (recipe) => {
+                const db = Storage.get('ingredients');
+                return (recipe || []).reduce((sum, r) => {
+                    const item = db.find(i => String(i.id) === String(r.ingredientId));
+                    return sum + (item ? (item.costPerUnit * r.amount) : 0);
+                }, 0);
+            },
+            maxProd: (recipe) => {
+                const db = Storage.get('ingredients');
+                let min = Infinity;
+                if (!recipe || !recipe.length) return 0;
+                recipe.forEach(r => {
+                    const item = db.find(i => String(i.id) === String(r.ingredientId));
+                    if (item && r.amount > 0) {
+                        const possible = Math.floor(item.currentStock / r.amount);
+                        if (possible < min) min = possible;
+                    } else min = 0;
+                });
+                return min === Infinity ? 0 : min;
+            },
+            checkStock: (recipe, qty) => {
+                const db = Storage.get('ingredients');
+                for (let r of recipe) {
+                    const item = db.find(i => String(i.id) === String(r.ingredientId));
+                    if (!item || item.currentStock < (r.amount * qty)) {
+                        return { ok: false, missing: item ? item.name : 'Unknown' };
                     }
                 }
-                setIsOpen(false);
-            };
+                return { ok: true };
+            }
+        };
 
-            const remove = async (id) => {
-                if (!confirm("Padam rekod ini?")) return;
-                await deleteDoc(doc(db, 'artifacts', activeAppId, 'users', user.uid, 'sales', id));
-            };
+        // --- EXPORT ---
+        const exportData = {
+            downloadCSV: () => {
+                const sales = Storage.get('sales');
+                if (!sales.length) return app.toast('Tiada data jualan!', 'error');
+                
+                let csv = "ID,Tarikh,Menu,Qty,Hasil,Kos,Untung\n";
+                const menus = Storage.get('menus');
+                
+                sales.forEach(s => {
+                    const m = menus.find(x => String(x.id) === String(s.menuId));
+                    csv += `${s.id},${s.date},"${m ? m.name : 'Deleted'}",${s.quantity},${s.totalRevenue.toFixed(2)},${s.totalCost.toFixed(2)},${s.totalProfit.toFixed(2)}\n`;
+                });
+                
+                const link = document.createElement("a");
+                link.href = "data:text/csv;charset=utf-8," + encodeURI(csv);
+                link.download = `Laporan_Jualan_${new Date().toISOString().slice(0,10)}.csv`;
+                document.body.appendChild(link); link.click(); document.body.removeChild(link);
+            }
+        };
 
-            return (
-                <div className="space-y-8 fade-in">
-                    <header className="flex justify-between items-end">
-                        <div><p className="text-zinc-500 header-text text-[10px] mb-1">Live</p><h2 className="text-6xl header-text leading-none italic uppercase">JUALAN</h2></div>
-                        <button onClick={() => setIsOpen(true)} className="bg-white text-black px-6 py-3 rounded-xl header-text text-[10px] btn-action flex items-center gap-2"><Icon name="plus" size={16}/> Baru</button>
-                    </header>
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead><tr className="text-zinc-600 header-text text-[9px] italic"><th>Produk / Masa</th><th className="text-center">Qty</th><th className="text-right">Profit</th><th className="text-center w-16">Padam</th></tr></thead>
-                            <tbody>
-                                {sales.sort((a,b) => b.timestamp - a.timestamp).map(s => (
-                                    <tr key={s.id}>
-                                        <td><div className="font-bold text-sm uppercase italic">{s.productName}</div><div className="text-[9px] opacity-40 mt-1 uppercase">{s.timestamp?.toDate().toLocaleString()}</div></td>
-                                        <td className="text-center font-bold text-xl">{s.quantitySold}</td>
-                                        <td className="text-right font-bold text-lg text-emerald-500">{formatRM(s.totalProfit)}</td>
-                                        <td className="text-center">
-                                            <button onClick={() => remove(s.id)} className="text-zinc-800 hover:text-rose-500 p-2"><Icon name="trash-2" size={16}/></button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                    <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Pendaftaran Pesanan">
-                        <form onSubmit={handleOrder} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <label className="text-[9px] header-text text-zinc-500 uppercase">Pilih Menu Produk</label>
-                                <select name="pId" required className="bru-input italic font-bold">
-                                    <option value="">Sila Pilih...</option>
-                                    {products.map(p => <option key={p.id} value={p.id} className="text-black">{p.name} ({formatRM(p.price)})</option>)}
-                                </select>
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-[9px] header-text text-zinc-500 uppercase text-center block">Unit</label>
-                                <input name="qty" type="number" defaultValue={1} min={1} required className="bru-input text-center font-black" />
-                            </div>
-                            <div className="md:col-span-2 pt-4">
-                                <button type="submit" className="w-full bg-white text-black py-4 rounded-xl header-text text-xs btn-action italic">Sahkan Jualan</button>
-                            </div>
-                        </form>
-                    </Modal>
-                </div>
-            );
-        }
+        // --- MAIN APP CONTROLLER ---
+        const app = {
+            init: () => {
+                Storage.init();
+                // Set default dates
+                document.getElementById('sale-date').valueAsDate = new Date();
+                const lastWeek = new Date(); lastWeek.setDate(lastWeek.getDate() - 7);
+                document.getElementById('report-start').valueAsDate = lastWeek;
+                document.getElementById('report-end').valueAsDate = new Date();
+            },
 
-        function ProductsView({ user, products, ingredients, recipes }) {
-            const [isModalOpen, setIsModalOpen] = useState(false);
-            const [activeRecipe, setActiveRecipe] = useState(null);
+            enterSystem: () => {
+                document.getElementById('landing-page').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('landing-page').style.display = 'none';
+                    document.getElementById('app-container').style.display = 'flex';
+                    app.renderDash();
+                }, 500);
+            },
 
-            const remove = async (id) => {
-                if (!confirm("Padam menu ini?")) return;
-                await deleteDoc(doc(db, 'artifacts', activeAppId, 'users', user.uid, 'products', id));
-            };
+            navigate: (page) => {
+                document.querySelectorAll('.page').forEach(el => el.classList.add('hidden'));
+                document.getElementById(page).classList.remove('hidden');
+                document.querySelectorAll('.nav-links button').forEach(b => b.classList.remove('active'));
+                document.getElementById('nav-' + page).classList.add('active');
+                
+                if (page === 'inventory') app.renderInv();
+                if (page === 'menu') app.renderMenu();
+                if (page === 'sales') app.prepSales();
+                if (page === 'dashboard') app.renderDash();
+            },
 
-            return (
-                <div className="space-y-8 fade-in">
-                    <header className="flex justify-between items-end">
-                        <div><p className="text-zinc-500 header-text text-[10px] mb-1">Catalog</p><h2 className="text-6xl header-text leading-none italic uppercase">MENU</h2></div>
-                        <button onClick={() => setIsModalOpen(true)} className="bg-white text-black px-6 py-3 rounded-xl header-text text-[10px] btn-action italic uppercase font-bold">Tambah</button>
-                    </header>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {products.map(p => (
-                            <div key={p.id} className="bg-[#080808] border border-[#111] p-6 rounded-2xl space-y-4 hover:border-white transition-all group">
-                                <h4 className="text-lg header-text uppercase italic leading-tight">{p.name}</h4>
-                                <div className="flex justify-between items-center pt-3 border-t border-[#111]">
-                                    <p className="text-zinc-500 text-[10px] font-bold">{p.volume}ml • {formatRM(p.price)}</p>
-                                    <div className="flex gap-2">
-                                        <button onClick={() => setActiveRecipe(recipes.find(r => r.productId === p.id) || { productId: p.id, ingredients: [] })} className="bg-zinc-900 p-2 rounded-lg hover:bg-white hover:text-black transition-all"><Icon name="book-open" size={14}/></button>
-                                        <button onClick={() => remove(p.id)} className="bg-zinc-900 p-2 rounded-lg text-rose-500 hover:bg-rose-500 hover:text-white transition-all"><Icon name="trash-2" size={14}/></button>
-                                    </div>
+            toast: (msg, type = 'success') => {
+                const t = document.createElement('div');
+                t.className = 'toast';
+                t.textContent = msg;
+                if (type === 'error') t.style.background = 'var(--danger)';
+                document.getElementById('toast-container').appendChild(t);
+                setTimeout(() => t.remove(), 3000);
+            },
+
+            // --- MODAL ---
+            askDelete: (type, id) => {
+                document.getElementById('confirm-modal').classList.remove('hidden');
+                document.getElementById('confirm-yes-btn').onclick = () => {
+                    if (type === 'ing') app.delIng(id);
+                    if (type === 'menu') app.delMenu(id);
+                    app.closeModal();
+                };
+            },
+            closeModal: () => document.getElementById('confirm-modal').classList.add('hidden'),
+
+            // --- INVENTORY ---
+            renderInv: () => {
+                const list = Storage.get('ingredients');
+                const tbody = document.querySelector('#inventory-table tbody');
+                tbody.innerHTML = '';
+                if(!list.length) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px;">Tiada data. Sila tambah bahan.</td></tr>';
+                
+                list.forEach(i => {
+                    const isLow = i.currentStock <= i.lowStockThreshold;
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong style="color:var(--primary)">${i.name}</strong></td>
+                            <td>RM ${i.costPerUnit}/${i.unit}</td>
+                            <td>${i.currentStock}</td>
+                            <td>RM ${(i.currentStock * i.costPerUnit).toFixed(2)}</td>
+                            <td><span class="badge ${isLow ? 'badge-low' : 'badge-ok'}">${isLow ? 'LOW' : 'OK'}</span></td>
+                            <td class="text-right">
+                                <div class="action-group">
+                                    <button class="btn btn-secondary btn-sm" onclick="app.editIng('${i.id}')">✏️</button>
+                                    <button class="btn btn-danger btn-sm" onclick="app.askDelete('ing', '${i.id}')">🗑️</button>
                                 </div>
-                            </div>
-                        ))}
+                            </td>
+                        </tr>`;
+                });
+            },
+            toggleInventoryForm: () => {
+                const form = document.getElementById('inventory-form-container');
+                form.classList.toggle('hidden');
+                if(!form.classList.contains('hidden')) {
+                    document.getElementById('inventory-form').reset();
+                    document.getElementById('inv-id').value = '';
+                }
+            },
+            saveInventory: (e) => {
+                e.preventDefault();
+                const id = document.getElementById('inv-id').value;
+                const data = {
+                    id: id ? parseInt(id) : Date.now(),
+                    name: document.getElementById('inv-name').value,
+                    unit: document.getElementById('inv-unit').value,
+                    costPerUnit: parseFloat(document.getElementById('inv-cost').value),
+                    currentStock: parseFloat(document.getElementById('inv-stock').value),
+                    lowStockThreshold: parseFloat(document.getElementById('inv-low').value)
+                };
+                let list = Storage.get('ingredients');
+                if (id) { const idx = list.findIndex(x => String(x.id) === String(id)); if(idx>-1) list[idx] = data; }
+                else list.push(data);
+                
+                Storage.set('ingredients', list);
+                app.toast('Bahan berjaya disimpan!');
+                app.toggleInventoryForm();
+                app.renderInv();
+            },
+            editIng: (id) => {
+                const item = Storage.get('ingredients').find(x => String(x.id) === String(id));
+                if(item) {
+                    app.toggleInventoryForm();
+                    document.getElementById('inv-id').value = item.id;
+                    document.getElementById('inv-name').value = item.name;
+                    document.getElementById('inv-unit').value = item.unit;
+                    document.getElementById('inv-cost').value = item.costPerUnit;
+                    document.getElementById('inv-stock').value = item.currentStock;
+                    document.getElementById('inv-low').value = item.lowStockThreshold;
+                }
+            },
+            delIng: (id) => {
+                let list = Storage.get('ingredients').filter(x => String(x.id) !== String(id));
+                Storage.set('ingredients', list);
+                app.renderInv();
+                app.toast('Bahan dipadam', 'error');
+            },
+
+            // --- MENU ---
+            renderMenu: () => {
+                const menus = Storage.get('menus');
+                const tbody = document.querySelector('#menu-table tbody');
+                tbody.innerHTML = '';
+                if(!menus.length) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px;">Tiada menu.</td></tr>';
+
+                menus.forEach(m => {
+                    const cost = Calc.cost(m.recipe);
+                    const profit = m.price - cost;
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong>${m.name}</strong><br><small style="color:var(--text-muted)">${m.servingSizeML}ml</small></td>
+                            <td>RM ${m.price.toFixed(2)}</td>
+                            <td>RM ${cost.toFixed(2)}</td>
+                            <td style="color:${profit>0?'var(--success)':'var(--danger)'}; font-weight:700">RM ${profit.toFixed(2)}</td>
+                            <td>${Calc.maxProd(m.recipe)}</td>
+                            <td class="text-right">
+                                <div class="action-group">
+                                    <button class="btn btn-secondary btn-sm" onclick="app.editMenu('${m.id}')">✏️</button>
+                                    <button class="btn btn-danger btn-sm" onclick="app.askDelete('menu', '${m.id}')">🗑️</button>
+                                </div>
+                            </td>
+                        </tr>`;
+                });
+            },
+            toggleMenuForm: () => {
+                const form = document.getElementById('menu-form-container');
+                form.classList.toggle('hidden');
+                if(!form.classList.contains('hidden')) {
+                    document.getElementById('menu-form').reset();
+                    document.getElementById('menu-id').value = '';
+                    document.getElementById('recipe-builder').innerHTML = '';
+                    app.addRecipeRow();
+                }
+            },
+            addRecipeRow: (ingId = '', amt = '') => {
+                const div = document.createElement('div'); div.className = 'recipe-item';
+                const ingredients = Storage.get('ingredients');
+                
+                let opts = '<option value="">-- Pilih Bahan --</option>';
+                let currentUnit = '-';
+
+                ingredients.forEach(i => {
+                    const isSelected = String(i.id) === String(ingId);
+                    if(isSelected) currentUnit = i.unit;
+                    opts += `<option value="${i.id}" data-unit="${i.unit}" ${isSelected?'selected':''}>${i.name}</option>`;
+                });
+
+                div.innerHTML = `
+                    <select class="rec-ing-select" style="flex:2" required onchange="app.updateRowUnit(this)">${opts}</select>
+                    <div style="flex:1; display:flex; align-items:center; gap:5px; background:white; border:1px solid #D1D5DB; border-radius:6px; padding-right:8px;">
+                        <input type="number" class="rec-ing-amount" placeholder="Sukatan" style="border:none; outline:none; background:transparent; width:100%;" value="${amt}" required step="any">
+                        <span class="unit-label" style="font-size:0.8rem; color:#666; white-space:nowrap;">${currentUnit}</span>
                     </div>
-                    
-                    <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Menu Baru">
-                        <form onSubmit={async (e) => {
-                            e.preventDefault();
-                            const fd = new FormData(e.target);
-                            await addDoc(collection(db, 'artifacts', activeAppId, 'users', user.uid, 'products'), {
-                                name: fd.get('n').toUpperCase(), volume: parseFloat(fd.get('v')), price: parseFloat(fd.get('p'))
-                            });
-                            setIsModalOpen(false);
-                        }} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                            <div className="md:col-span-1"><label className="text-[9px] text-zinc-600 uppercase">Nama</label><input name="n" className="bru-input font-bold" required /></div>
-                            <div><label className="text-[9px] text-zinc-600 uppercase">Saiz (ML)</label><input name="v" type="number" className="bru-input text-center" required /></div>
-                            <div><label className="text-[9px] text-zinc-600 uppercase">Harga (RM)</label><input name="p" type="number" step="0.1" className="bru-input text-center" required /></div>
-                            <div className="md:col-span-3 pt-2"><button type="submit" className="w-full bg-white text-black py-4 rounded-xl header-text text-xs btn-action italic">Simpan Katalog</button></div>
-                        </form>
-                    </Modal>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.recipe-item').remove()">X</button>
+                `;
+                document.getElementById('recipe-builder').appendChild(div);
+            },
+            updateRowUnit: (selectEl) => {
+                const unit = selectEl.options[selectEl.selectedIndex].getAttribute('data-unit') || '-';
+                const label = selectEl.closest('.recipe-item').querySelector('.unit-label');
+                if(label) label.textContent = unit;
+            },
+            saveMenu: (e) => {
+                e.preventDefault();
+                const id = document.getElementById('menu-id').value;
+                const recipe = [];
+                document.querySelectorAll('.recipe-item').forEach(el => {
+                    const iId = el.querySelector('.rec-ing-select').value;
+                    const amt = el.querySelector('.rec-ing-amount').value;
+                    if(iId && amt) recipe.push({ ingredientId: parseInt(iId), amount: parseFloat(amt) });
+                });
+                
+                if(!recipe.length) return app.toast('Sila masukkan sekurang-kurangnya satu bahan!', 'error');
 
-                    <Modal isOpen={!!activeRecipe} onClose={() => setActiveRecipe(null)} title={`Formula: ${products.find(p => p.id === activeRecipe?.productId)?.name}`}>
-                        <div className="space-y-6">
-                            <div className="flex gap-2 items-end">
-                                <div className="flex-1"><label className="text-[9px] text-zinc-600 uppercase block mb-1">Tambah Bahan Mentah</label>
-                                <select id="add-ing" className="bru-input uppercase text-xs font-bold italic">
-                                    <option value="">Pilih Dari Gudang...</option>
-                                    {ingredients.map(i => <option key={i.id} value={i.id} className="text-black">{i.name}</option>)}
-                                </select></div>
-                                <button onClick={async () => {
-                                    const id = document.getElementById('add-ing').value; if(!id) return;
-                                    const ing = ingredients.find(i => i.id === id);
-                                    const newIngs = [...activeRecipe.ingredients, { ingredientId: id, name: ing.name, quantityPerBottle: 0, unit: ing.unit }];
-                                    const upd = { ...activeRecipe, ingredients: newIngs };
-                                    const base = ['artifacts', activeAppId, 'users', user.uid, 'recipes'];
-                                    if(activeRecipe.id) await updateDoc(doc(db, ...base, activeRecipe.id), upd);
-                                    else { const ref = await addDoc(collection(db, ...base), upd); setActiveRecipe({...upd, id: ref.id}); }
-                                    setActiveRecipe(upd);
-                                }} className="bg-white text-black px-6 py-3 rounded-xl header-text text-[10px] btn-action">Tambah</button>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {activeRecipe?.ingredients.map((ri, idx) => (
-                                    <div key={idx} className="flex items-center gap-3 bg-zinc-900/40 p-4 rounded-xl border border-zinc-800">
-                                        <div className="flex-1 text-[11px] font-bold uppercase italic">{ri.name}</div>
-                                        <input type="number" value={ri.quantityPerBottle} step="0.1" onChange={async (e) => {
-                                            const val = parseFloat(e.target.value) || 0;
-                                            const newIngs = activeRecipe.ingredients.map((it, i) => i === idx ? {...it, quantityPerBottle: val} : it);
-                                            const upd = {...activeRecipe, ingredients: newIngs};
-                                            setActiveRecipe(upd);
-                                            await updateDoc(doc(db, 'artifacts', activeAppId, 'users', user.uid, 'recipes', activeRecipe.id), upd);
-                                        }} className="bg-black border border-zinc-800 w-20 p-2 rounded-lg text-sm text-center outline-none italic" />
-                                        <span className="text-[9px] opacity-40 uppercase">{ri.unit}</span>
-                                        <button onClick={async () => {
-                                            const newIngs = activeRecipe.ingredients.filter((_, i) => i !== idx);
-                                            const upd = {...activeRecipe, ingredients: newIngs};
-                                            setActiveRecipe(upd);
-                                            await updateDoc(doc(db, 'artifacts', activeAppId, 'users', user.uid, 'recipes', activeRecipe.id), upd);
-                                        }} className="text-zinc-800 hover:text-rose-500 transition-colors"><Icon name="trash-2" size={16} /></button>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </Modal>
-                </div>
-            );
-        }
+                const data = {
+                    id: id ? parseInt(id) : Date.now(),
+                    name: document.getElementById('menu-name').value,
+                    price: parseFloat(document.getElementById('menu-price').value),
+                    servingSizeML: parseInt(document.getElementById('menu-size').value),
+                    recipe: recipe
+                };
 
-        function InventoryView({ user, ingredients }) {
-            const [isModalOpen, setIsModalOpen] = useState(false);
-            const remove = async (id) => {
-                if (!confirm("Padam bahan mentah ini?")) return;
-                await deleteDoc(doc(db, 'artifacts', activeAppId, 'users', user.uid, 'ingredients', id));
-            };
+                let menus = Storage.get('menus');
+                if (id) { const idx = menus.findIndex(x => String(x.id) === String(id)); if(idx>-1) menus[idx] = data; }
+                else menus.push(data);
 
-            return (
-                <div className="space-y-8 fade-in">
-                    <header className="flex justify-between items-end">
-                        <div><p className="text-zinc-500 header-text text-[10px] mb-1">Supplies</p><h2 className="text-6xl header-text leading-none italic uppercase">GUDANG</h2></div>
-                        <button onClick={() => setIsModalOpen(true)} className="bg-white text-black px-6 py-3 rounded-xl header-text text-[10px] btn-action italic font-bold">Baru</button>
-                    </header>
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead><tr className="text-zinc-600 header-text text-[9px] italic"><th>Bahan</th><th className="text-center">Baki</th><th className="text-right">Unit Cost</th><th className="text-center w-16">Padam</th></tr></thead>
-                            <tbody>
-                                {ingredients.map(i => (
-                                    <tr key={i.id}>
-                                        <td className="font-bold text-lg uppercase italic leading-none">{i.name}</td>
-                                        <td className="text-center text-3xl font-black italic">{i.currentStock}<span className="text-[10px] opacity-20 ml-1 uppercase font-bold">{i.unit}</span></td>
-                                        <td className="text-right text-zinc-500 font-semibold italic">{formatRM(i.avgUnitCostRM)}</td>
-                                        <td className="text-center">
-                                            <button onClick={() => remove(i.id)} className="text-zinc-800 hover:text-rose-500 p-2 transition-colors"><Icon name="trash-2" size={18}/></button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                    <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Pendaftaran Bahan">
-                        <form onSubmit={async (e) => {
-                            e.preventDefault();
-                            const fd = new FormData(e.target);
-                            await addDoc(collection(db, 'artifacts', activeAppId, 'users', user.uid, 'ingredients'), {
-                                name: fd.get('n').toUpperCase(), category: fd.get('c'), unit: fd.get('u'), currentStock: parseFloat(fd.get('s')) || 0, avgUnitCostRM: parseFloat(fd.get('k')) || 0
-                            });
-                            setIsModalOpen(false);
-                        }} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="md:col-span-2"><label className="text-[9px] text-zinc-600 uppercase">Nama Bahan Mentah</label><input name="n" className="bru-input italic font-bold uppercase" required /></div>
-                            <div><label className="text-[9px] text-zinc-600 uppercase">Unit</label><select name="u" className="bru-input font-bold italic"><option value="ml">ML</option><option value="g">G</option><option value="pcs">PCS</option></select></div>
-                            <div><label className="text-[9px] text-zinc-600 uppercase">Stok Asal</label><input name="s" type="number" step="0.01" className="bru-input text-center" required /></div>
-                            <div className="md:col-span-2"><label className="text-[9px] text-zinc-600 uppercase">Kos Purata Seunit (RM)</label><input name="k" type="number" step="0.0001" className="bru-input text-center" required /></div>
-                            <button type="submit" className="md:col-span-2 bg-white text-black py-4 rounded-xl header-text text-xs btn-action mt-2 italic">Simpan Data</button>
-                        </form>
-                    </Modal>
-                </div>
-            );
-        }
+                Storage.set('menus', menus);
+                app.toast('Menu berjaya disimpan!');
+                app.toggleMenuForm();
+                app.renderMenu();
+            },
+            editMenu: (id) => {
+                const m = Storage.get('menus').find(x => String(x.id) === String(id));
+                if(m) {
+                    app.toggleMenuForm();
+                    document.getElementById('menu-id').value = m.id;
+                    document.getElementById('menu-name').value = m.name;
+                    document.getElementById('menu-price').value = m.price;
+                    document.getElementById('menu-size').value = m.servingSizeML;
+                    document.getElementById('recipe-builder').innerHTML = '';
+                    m.recipe.forEach(r => app.addRecipeRow(r.ingredientId, r.amount));
+                }
+            },
+            delMenu: (id) => {
+                let menus = Storage.get('menus').filter(x => String(x.id) !== String(id));
+                Storage.set('menus', menus);
+                app.renderMenu();
+                app.toast('Menu dipadam', 'error');
+            },
 
-        function PurchasesView({ user, purchases, ingredients }) {
-            const [isModalOpen, setIsModalOpen] = useState(false);
-            const remove = async (id) => {
-                if (!confirm("Padam rekod pembelian?")) return;
-                await deleteDoc(doc(db, 'artifacts', activeAppId, 'users', user.uid, 'purchases', id));
-            };
+            // --- SALES ---
+            prepSales: () => {
+                const sel = document.getElementById('sale-menu-id');
+                sel.innerHTML = '<option value="">-- Pilih Menu --</option>';
+                Storage.get('menus').forEach(m => sel.innerHTML += `<option value="${m.id}">${m.name}</option>`);
+                app.renderSalesTable();
+            },
+            updateSaleInfo: () => {
+                const id = document.getElementById('sale-menu-id').value;
+                const qty = document.getElementById('sale-qty').value;
+                const profitEl = document.getElementById('sale-est-profit');
+                const warnEl = document.getElementById('sale-stock-warning');
+                
+                if(!id || !qty) { profitEl.textContent = 'RM 0.00'; warnEl.textContent = ''; return; }
+                
+                const m = Storage.get('menus').find(x => String(x.id) === String(id));
+                const cost = Calc.cost(m.recipe);
+                const profit = (m.price - cost) * qty;
+                profitEl.textContent = `RM ${profit.toFixed(2)}`;
+                
+                const check = Calc.checkStock(m.recipe, qty);
+                warnEl.textContent = check.ok ? '' : `⚠️ STOK TIDAK CUKUP: ${check.missing}`;
+            },
+            submitSale: (e) => {
+                e.preventDefault();
+                const id = document.getElementById('sale-menu-id').value;
+                const qty = parseInt(document.getElementById('sale-qty').value);
+                const m = Storage.get('menus').find(x => String(x.id) === String(id));
+                
+                const check = Calc.checkStock(m.recipe, qty);
+                if(!check.ok) return app.toast(`Gagal: ${check.missing} tidak cukup!`, 'error');
 
-            return (
-                <div className="space-y-8 fade-in">
-                    <header className="flex justify-between items-end">
-                        <div><p className="text-zinc-500 header-text text-[10px] mb-1">Injection</p><h2 className="text-6xl header-text leading-none italic uppercase">PEMBELIAN</h2></div>
-                        <button onClick={() => setIsModalOpen(true)} className="bg-white text-black px-6 py-3 rounded-xl header-text text-[10px] btn-action italic font-bold">Baru</button>
-                    </header>
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead><tr className="text-zinc-600 header-text text-[9px] italic"><th>Tarikh</th><th>Item</th><th className="text-right">RM</th><th className="text-center w-16">Padam</th></tr></thead>
-                            <tbody>
-                                {purchases.sort((a,b) => b.timestamp - a.timestamp).map(p => (
-                                    <tr key={p.id}>
-                                        <td className="text-zinc-700 text-[10px] font-mono uppercase leading-none">{p.timestamp?.toDate().toLocaleDateString()}</td>
-                                        <td className="font-bold text-lg uppercase italic leading-none">{p.ingName} <span className="text-[9px] opacity-20 ml-2">({p.qty}{p.unit})</span></td>
-                                        <td className="text-right font-bold text-xl leading-none">{formatRM(p.cost)}</td>
-                                        <td className="text-center">
-                                            <button onClick={() => remove(p.id)} className="text-zinc-900 hover:text-rose-500 p-2 transition-colors"><Icon name="trash-2" size={16}/></button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                    <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Log Pembelian Stok">
-                        <form onSubmit={async (e) => {
-                            e.preventDefault();
-                            const f = new FormData(e.target);
-                            const iId = f.get('id'); const q = parseFloat(f.get('q')); const c = parseFloat(f.get('c'));
-                            const ing = ingredients.find(i => i.id === iId);
-                            if (!ing) return;
-                            const nS = ing.currentStock + q;
-                            const nA = (ing.currentStock * ing.avgUnitCostRM + c) / nS;
-                            const base = ['artifacts', activeAppId, 'users', user.uid];
-                            await addDoc(collection(db, ...base, 'purchases'), { ingName: ing.name, qty: q, cost: c, unit: ing.unit, timestamp: Timestamp.now() });
-                            await updateDoc(doc(db, ...base, 'ingredients', iId), { currentStock: increment(q), avgUnitCostRM: nA });
-                            setIsModalOpen(false);
-                        }} className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-                            <div className="md:col-span-2">
-                                <label className="text-[9px] text-zinc-600 uppercase">Pilih Bahan</label>
-                                <select name="id" required className="bru-input uppercase italic font-bold">
-                                    <option value="">Pilih Dari Inventori...</option>
-                                    {ingredients.map(i => <option key={i.id} value={i.id} className="text-black">{i.name}</option>)}
-                                </select>
-                            </div>
-                            <div><label className="text-[9px] text-zinc-600 uppercase">Kuantiti</label><input name="q" type="number" step="0.01" className="bru-input text-center" required /></div>
-                            <div><label className="text-[9px] text-zinc-600 uppercase">Harga Total (RM)</label><input name="c" type="number" step="0.01" className="bru-input text-center" required /></div>
-                            <button type="submit" className="md:col-span-2 bg-white text-black py-4 rounded-xl header-text text-xs btn-action mt-2 italic">Daftar Transaksi</button>
-                        </form>
-                    </Modal>
-                </div>
-            );
-        }
+                // Deduct stock
+                let db = Storage.get('ingredients');
+                m.recipe.forEach(r => {
+                    const item = db.find(x => String(x.id) === String(r.ingredientId));
+                    if(item) item.currentStock -= (r.amount * qty);
+                });
+                Storage.set('ingredients', db);
 
-        // --- MASTER APP ---
+                // Record Sale
+                const cost = Calc.cost(m.recipe) * qty;
+                const rev = m.price * qty;
+                const sales = Storage.get('sales');
+                sales.unshift({
+                    id: Date.now(), menuId: m.id, quantity: qty, date: document.getElementById('sale-date').value,
+                    totalRevenue: rev, totalCost: cost, totalProfit: rev - cost
+                });
+                Storage.set('sales', sales);
 
-        function App() {
-            const [user, setUser] = useState(null);
-            const [loading, setLoading] = useState(true);
-            const [view, setView] = useState('dashboard');
-            const [sidebarOpen, setSidebarOpen] = useState(false);
-            
-            const [products, setProducts] = useState([]);
-            const [ingredients, setIngredients] = useState([]);
-            const [recipes, setRecipes] = useState([]);
-            const [sales, setSales] = useState([]);
-            const [purchases, setPurchases] = useState([]);
-            const [settings, setSettings] = useState({ autoDeduct: true, watermark: true, logoUrl: null });
+                app.toast('Jualan direkodkan!');
+                document.getElementById('sales-form').reset();
+                document.getElementById('sale-date').valueAsDate = new Date();
+                app.updateSaleInfo();
+                app.renderSalesTable();
+            },
+            renderSalesTable: () => {
+                const tbody = document.querySelector('#sales-table tbody'); tbody.innerHTML = '';
+                const menus = Storage.get('menus');
+                Storage.get('sales').slice(0, 15).forEach(s => {
+                    const m = menus.find(x => String(x.id) === String(s.menuId));
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${s.date}</td>
+                            <td>${m ? m.name : 'Dipadam'}</td>
+                            <td>${s.quantity}</td>
+                            <td>RM ${s.totalRevenue.toFixed(2)}</td>
+                            <td>RM ${s.totalCost.toFixed(2)}</td>
+                            <td style="color:${s.totalProfit>0?'var(--success)':'var(--danger)'}">RM ${s.totalProfit.toFixed(2)}</td>
+                        </tr>`;
+                });
+            },
 
-            useEffect(() => {
-                return onAuthStateChanged(auth, u => { setUser(u); setLoading(false); });
-            }, []);
+            // --- DASHBOARD & REPORTS ---
+            renderDash: () => {
+                const sales = Storage.get('sales');
+                const ings = Storage.get('ingredients');
+                const today = new Date().toISOString().slice(0,10);
+                
+                const todayData = sales.filter(s => s.date === today);
+                document.getElementById('dash-today-sales').textContent = `RM ${todayData.reduce((a,b)=>a+b.totalRevenue,0).toFixed(2)}`;
+                document.getElementById('dash-today-profit').textContent = `RM ${todayData.reduce((a,b)=>a+b.totalProfit,0).toFixed(2)}`;
+                
+                const low = ings.filter(i => i.currentStock <= i.lowStockThreshold);
+                document.getElementById('dash-low-stock').textContent = low.length;
+                const stockBody = document.querySelector('#dash-stock-table tbody');
+                stockBody.innerHTML = low.length ? '' : '<tr><td colspan="3" style="text-align:center; padding:10px;">Semua Stok Mencukupi ✅</td></tr>';
+                low.forEach(i => stockBody.innerHTML += `<tr><td>${i.name}</td><td>${i.currentStock}</td><td><span class="badge badge-low">LOW</span></td></tr>`);
+                
+                // Top Menu logic simplified
+                const counts = {};
+                sales.forEach(s => counts[s.menuId] = (counts[s.menuId] || 0) + s.quantity);
+                const topId = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b, null);
+                const menus = Storage.get('menus');
+                const topM = menus.find(x => String(x.id) === String(topId));
+                document.getElementById('dash-top-menu').textContent = topM ? topM.name : '-';
 
-            useEffect(() => {
-                if (!user) return;
-                const base = ['artifacts', activeAppId, 'users', user.uid];
-                const unsub = [
-                    onSnapshot(collection(db, ...base, 'products'), s => setProducts(s.docs.map(d => ({id: d.id, ...d.data()})))),
-                    onSnapshot(collection(db, ...base, 'ingredients'), s => setIngredients(s.docs.map(d => ({id: d.id, ...d.data()})))),
-                    onSnapshot(collection(db, ...base, 'recipes'), s => setRecipes(s.docs.map(d => ({id: d.id, ...d.data()})))),
-                    onSnapshot(collection(db, ...base, 'sales'), s => setSales(s.docs.map(d => ({id: d.id, ...d.data()})))),
-                    onSnapshot(collection(db, ...base, 'purchases'), s => setPurchases(s.docs.map(d => ({id: d.id, ...d.data()})))),
-                    onSnapshot(doc(db, ...base, 'settings', 'config'), s => s.exists() && setSettings(s.data()))
-                ];
-                return () => unsub.forEach(f => f());
-            }, [user]);
+                // Recent Sales
+                const recentBody = document.querySelector('#dash-sales-recent tbody');
+                recentBody.innerHTML = '';
+                sales.slice(0, 5).forEach(s => {
+                    const m = menus.find(x => String(x.id) === String(s.menuId));
+                    recentBody.innerHTML += `<tr><td>${s.date}</td><td>${m?m.name:'-'}</td><td>${s.quantity}</td></tr>`;
+                });
+            },
+            generateReport: () => {
+                const start = document.getElementById('report-start').value;
+                const end = document.getElementById('report-end').value;
+                if(!start || !end) return app.toast('Pilih julat tarikh.', 'error');
 
-            if (loading) return (
-                <div className="min-h-screen bg-black flex flex-col items-center justify-center text-white">
-                    <div className="w-8 h-8 border-t-2 border-white rounded-full animate-spin mb-4"></div>
-                    <p className="text-[8px] header-text opacity-30 italic uppercase tracking-[0.4em]">Master Session Authenticating</p>
-                </div>
-            );
+                const data = Storage.get('sales').filter(s => s.date >= start && s.date <= end);
+                document.getElementById('rep-revenue').textContent = `RM ${data.reduce((a,b)=>a+b.totalRevenue,0).toFixed(2)}`;
+                document.getElementById('rep-cost').textContent = `RM ${data.reduce((a,b)=>a+b.totalCost,0).toFixed(2)}`;
+                document.getElementById('rep-profit').textContent = `RM ${data.reduce((a,b)=>a+b.totalProfit,0).toFixed(2)}`;
 
-            if (!user) return <AuthPage />;
+                const breakdown = {};
+                data.forEach(s => {
+                    if(!breakdown[s.menuId]) breakdown[s.menuId] = { qty:0, rev:0, prof:0 };
+                    breakdown[s.menuId].qty += s.quantity;
+                    breakdown[s.menuId].rev += s.totalRevenue;
+                    breakdown[s.menuId].prof += s.totalProfit;
+                });
 
-            const NavItem = ({ icon, label, id }) => (
-                <button onClick={() => { setView(id); setSidebarOpen(false); }} className={`flex items-center gap-4 px-6 py-4 rounded-xl transition-all w-full text-left ${view === id ? 'bg-white text-black shadow-2xl scale-[1.02]' : 'text-zinc-600 hover:text-white hover:bg-zinc-900'}`}>
-                    <Icon name={icon} size={18} />
-                    <span className="text-[10px] header-text tracking-widest italic">{label}</span>
-                </button>
-            );
+                const tbody = document.querySelector('#report-detail-table tbody');
+                tbody.innerHTML = '';
+                const menus = Storage.get('menus');
+                Object.keys(breakdown).forEach(id => {
+                    const m = menus.find(x => String(x.id) === String(id));
+                    const d = breakdown[id];
+                    tbody.innerHTML += `<tr><td>${m?m.name:'Dipadam'}</td><td>${d.qty}</td><td>RM ${d.rev.toFixed(2)}</td><td>RM ${d.prof.toFixed(2)}</td></tr>`;
+                });
+                document.getElementById('report-results').classList.remove('hidden');
+            }
+        };
 
-            return (
-                <div className="min-h-screen bg-black text-white flex flex-col lg:flex-row overflow-x-hidden selection:bg-white selection:text-black">
-                    <aside className="hidden lg:flex flex-col w-64 fixed h-full border-r border-[#111] p-6 z-[60] bg-black">
-                        <div className="mb-10 flex items-center gap-3 px-2">
-                            <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center rotate-3 shadow-2xl"><Icon name="coffee" className="text-black" size={20} /></div>
-                            <h1 className="text-lg header-text text-white italic">KMY BRU</h1>
-                        </div>
-                        <nav className="flex-1 space-y-1">
-                            <NavItem icon="layout-dashboard" label="Dashboard" id="dashboard" />
-                            <NavItem icon="shopping-cart" label="Jualan" id="sales" />
-                            <NavItem icon="book-open" label="Katalog" id="products" />
-                            <NavItem icon="package" label="Inventori" id="inventory" />
-                            <NavItem icon="receipt" label="Pembelian" id="purchases" />
-                        </nav>
-                        <button onClick={() => signOut(auth)} className="mt-8 p-3 border border-zinc-900 rounded-lg text-[8px] header-text text-zinc-800 hover:text-rose-500 hover:border-rose-500/20 transition-all uppercase italic font-bold">Sign Out</button>
-                    </aside>
-
-                    <header className="lg:hidden flex items-center justify-between p-6 border-b border-[#111] sticky top-0 bg-black/95 backdrop-blur-xl z-[60] w-full text-white">
-                        <div className="flex items-center gap-3"><Icon name="coffee" size={20} /><h1 className="header-text text-lg italic uppercase">KMY BRU</h1></div>
-                        <button onClick={() => setSidebarOpen(true)} className="p-2 bg-zinc-950 rounded-lg border border-[#111]"><Icon name="menu" size={20} /></button>
-                    </header>
-
-                    {sidebarOpen && (
-                        <div className="lg:hidden fixed inset-0 bg-black z-[200] p-10 flex flex-col fade-in overflow-y-auto italic">
-                            <div className="flex justify-between items-center mb-16"><h1 className="text-3xl header-text italic uppercase">MENU</h1><button onClick={() => setSidebarOpen(false)} className="p-3 bg-zinc-900 rounded-lg"><Icon name="x" size={24} /></button></div>
-                            <nav className="flex-1 space-y-4">
-                                <NavItem icon="layout-dashboard" label="Dashboard" id="dashboard" />
-                                <NavItem icon="shopping-cart" label="Jualan" id="sales" />
-                                <NavItem icon="book-open" label="Katalog" id="products" />
-                                <NavItem icon="package" label="Inventori" id="inventory" />
-                                <NavItem icon="receipt" label="Pembelian" id="purchases" />
-                            </nav>
-                        </div>
-                    )}
-
-                    <main className="lg:ml-64 flex-1 p-6 lg:p-12 pb-32 min-h-screen italic uppercase leading-none">
-                        <div className="max-w-6xl mx-auto">
-                            {view === 'dashboard' && <DashboardView sales={sales} />}
-                            {view === 'sales' && <SalesPage user={user} sales={sales} products={products} ingredients={ingredients} recipes={recipes} settings={settings} />}
-                            {view === 'products' && <ProductsView user={user} products={products} ingredients={ingredients} recipes={recipes} />}
-                            {view === 'inventory' && <InventoryView user={user} ingredients={ingredients} />}
-                            {view === 'purchases' && <PurchasesView user={user} purchases={purchases} ingredients={ingredients} />}
-                        </div>
-                    </main>
-                </div>
-            );
-        }
-
-        const root = ReactDOM.createRoot(document.getElementById('app'));
-        root.render(<App />);
+        // EXPOSE & INIT
+        window.app = app;
+        document.getElementById('inventory-form').addEventListener('submit', app.saveInventory);
+        document.getElementById('menu-form').addEventListener('submit', app.saveMenu);
+        document.getElementById('sales-form').addEventListener('submit', app.submitSale);
+        window.addEventListener('DOMContentLoaded', app.init);
     </script>
 </body>
 </html>
